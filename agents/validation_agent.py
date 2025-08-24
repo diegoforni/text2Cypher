@@ -2,6 +2,8 @@
 from typing import Optional, Tuple
 
 from langfuse import Langfuse
+
+from .langfuse_utils import start_span, finish_span
 from neo4j import Driver
 
 
@@ -13,19 +15,13 @@ class ValidationAgent:
         self.langfuse = langfuse
 
     def validate(self, fragment: str) -> Tuple[bool, list | str]:
-        if self.langfuse:
-            span = self.langfuse.span("validate")
-            span.log_inputs({"fragment": fragment})
+        span = start_span(self.langfuse, "validate", {"fragment": fragment})
         try:
             with self.driver.session() as session:
                 result = session.run(fragment)
                 rows = [r.data() for r in result]
-            if self.langfuse:
-                span.log_outputs({"rows": rows})
-                span.end()
+            finish_span(span, {"rows": rows})
             return True, rows
         except Exception as e:  # pragma: no cover - network errors
-            if self.langfuse:
-                span.log_exception(e)
-                span.end()
+            finish_span(span, error=e)
             return False, str(e)

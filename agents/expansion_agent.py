@@ -4,6 +4,8 @@ from typing import Optional
 from langchain_core.language_models import BaseChatModel
 from langfuse import Langfuse
 
+from .langfuse_utils import start_span, finish_span
+
 
 class ExpansionAgent:
     """Ask clarifying questions and produce a schema-grounded description."""
@@ -19,15 +21,11 @@ class ExpansionAgent:
             "If the request is ambiguous, ask for clarification.\n"
             "Return a detailed, schema-grounded description.".format(schema=schema)
         )
-        if self.langfuse:
-            span = self.langfuse.span("expand")
-            span.log_inputs({"request": request})
+        span = start_span(self.langfuse, "expand", {"request": request})
         response = self.llm.invoke([
             ("system", "You expand user requests for Cypher queries."),
             ("user", f"Request: {request}\n{prompt}"),
         ])
         expanded = response.content if hasattr(response, "content") else str(response)
-        if self.langfuse:
-            span.log_outputs({"expanded": expanded})
-            span.end()
+        finish_span(span, {"expanded": expanded})
         return expanded
