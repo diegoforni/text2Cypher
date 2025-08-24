@@ -17,10 +17,12 @@ def start_trace(
         return None
     if hasattr(langfuse, "start_trace"):
         return langfuse.start_trace(name=name, input=inputs)
-    trace = langfuse.trace(name)
-    if inputs:
-        trace.log_inputs(inputs)
-    return trace
+    if hasattr(langfuse, "trace"):
+        trace = langfuse.trace(name)
+        if inputs:
+            trace.log_inputs(inputs)
+        return trace
+    return None
 
 
 def finish_trace(
@@ -39,6 +41,7 @@ def finish_trace(
             trace.log_outputs(outputs)
         if error is not None:
             trace.log_exception(error)
-    trace.end()
+    if hasattr(trace, "end"):
+        trace.end()
 
 
