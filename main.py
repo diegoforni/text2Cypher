@@ -63,14 +63,23 @@ def build_app(langfuse: Langfuse | None):
         print("[generate] subproblems:", state["subproblems"])
         fragments: List[str] = []
         for sub in state["subproblems"]:
-            feedback = ""
+            previous_fragment = ""
+            error_message = ""
             for _ in range(3):  # initial + 2 retries
-                fragment = generator.generate(f"{sub}\n{feedback}", state["schema"])
+                prompt = sub
+                if previous_fragment:
+                    prompt += (
+                        f"\nPrevious fragment:\n{previous_fragment}\n"
+                        f"Error: {error_message}\n"
+                        "Please fix and regenerate."
+                    )
+                fragment = generator.generate(prompt, state["schema"])
                 ok, result = validator.validate(fragment)
                 if ok:
                     fragments.append(fragment)
                     break
-                feedback = f"Previous error: {result}. Please fix and regenerate."
+                previous_fragment = fragment
+                error_message = str(result)
         print("[generate] fragments:", fragments)
         return {"fragments": fragments}
 
