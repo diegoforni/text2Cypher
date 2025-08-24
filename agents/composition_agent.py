@@ -22,13 +22,13 @@ class CompositionAgent:
 
     def explain(self, query: str, schema: str) -> str:
         system_message = (
-            "You are a cybersecurity analyst who summarizes Cypher queries in plain English."
+            "You are a cybersecurity-focused expert who explains Cypher queries clearly and concisely."
         )
         prompt = f"""
 Schema: {schema}
 Query: {query}
 
-Explain in one concise sentence what the query returns.
+Explain in a short sentence what this query does.
 """
         response = self.llm.invoke([
             ("system", system_message),
