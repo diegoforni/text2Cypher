@@ -4,7 +4,7 @@ from typing import Optional
 from langchain_core.language_models import BaseChatModel
 from langfuse import Langfuse
 
-from .langfuse_utils import start_span, finish_span
+from .langfuse_utils import start_trace, finish_trace
 
 
 class ExpansionAgent:
@@ -37,11 +37,11 @@ Provide a JSON object with these keys:
 
 Do NOT include any query language in your response.
 """
-        span = start_span(self.langfuse, "expand", {"request": request})
+        trace = start_trace(self.langfuse, "expand", {"request": request})
         response = self.llm.invoke([
             ("system", system_message),
             ("user", prompt),
         ])
         expanded = response.content if hasattr(response, "content") else str(response)
-        finish_span(span, {"expanded": expanded})
+        finish_trace(trace, {"expanded": expanded})
         return expanded

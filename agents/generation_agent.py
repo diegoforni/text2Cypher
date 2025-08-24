@@ -4,7 +4,7 @@ from typing import List, Optional
 from langchain_core.language_models import BaseChatModel
 from langfuse import Langfuse
 
-from .langfuse_utils import start_span, finish_span
+from .langfuse_utils import start_trace, finish_trace
 
 
 def _lexical_match(term: str, candidates: List[str]) -> str:
@@ -40,7 +40,7 @@ class GenerationAgent:
         self.langfuse = langfuse
 
     def generate(self, subproblem: str, schema: str) -> str:
-        span = start_span(self.langfuse, "generate", {"subproblem": subproblem})
+        trace = start_trace(self.langfuse, "generate", {"subproblem": subproblem})
         system_message = (
             "You are a Cypher query expert. Use the provided database schema to solve the given subproblem. "
             "Always produce a complete Cypher fragment ending with a RETURN clause. "
@@ -61,5 +61,5 @@ class GenerationAgent:
             ("user", prompt),
         ])
         fragment = response.content if hasattr(response, "content") else str(response)
-        finish_span(span, {"fragment": fragment})
+        finish_trace(trace, {"fragment": fragment})
         return fragment
