@@ -44,12 +44,19 @@ def build_app(langfuse: Langfuse | None):
     composer = CompositionAgent(llm, langfuse)
 
     def expand_node(state: GraphState):
-        return {"expanded": expander.expand(state["request"], state["schema"]) }
+        print("[expand] request:", state["request"])
+        expanded = expander.expand(state["request"], state["schema"])
+        print("[expand] expanded:", expanded)
+        return {"expanded": expanded }
 
     def decompose_node(state: GraphState):
-        return {"subproblems": decomposer.decompose(state["expanded"])}
+        print("[decompose] expanded:", state["expanded"])
+        subproblems = decomposer.decompose(state["expanded"])
+        print("[decompose] subproblems:", subproblems)
+        return {"subproblems": subproblems}
 
     def generate_node(state: GraphState):
+        print("[generate] subproblems:", state["subproblems"])
         fragments: List[str] = []
         for sub in state["subproblems"]:
             feedback = ""
@@ -60,22 +67,29 @@ def build_app(langfuse: Langfuse | None):
                     fragments.append(fragment)
                     break
                 feedback = f"Previous error: {result}. Please fix and regenerate."
+        print("[generate] fragments:", fragments)
         return {"fragments": fragments}
 
     def compose_node(state: GraphState):
+        print("[compose] fragments:", state["fragments"])
         query = composer.compose(state["fragments"])
+        print("[compose] final_query:", query)
         return {"final_query": query}
 
     def final_validate_node(state: GraphState):
+        print("[final_validate] final_query:", state["final_query"])
         ok, res = validator.validate(state["final_query"])
+        print("[final_validate] ok:", ok, "result:", res)
         if ok:
             return {"results": res}
         return {"error": res}
 
     def explain_node(state: GraphState):
         if "error" in state:
+            print("[explain] skipping due to error")
             return {}
         explanation = composer.explain(state["final_query"], state["schema"])
+        print("[explain] explanation:", explanation)
         return {"explanation": explanation}
 
     workflow = StateGraph(GraphState)
@@ -100,14 +114,20 @@ def build_app(langfuse: Langfuse | None):
 def run(question: str, schema: str) -> GraphState:
     langfuse = None
     if LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY:
+        print("[run] Initializing Langfuse client")
         langfuse = Langfuse(
             secret_key=LANGFUSE_SECRET_KEY,
             public_key=LANGFUSE_PUBLIC_KEY,
             host=LANGFUSE_HOST,
         )
+    else:
+        print("[run] Langfuse credentials not provided")
     app = build_app(langfuse)
     inputs: GraphState = {"request": question, "schema": schema}
-    return app.invoke(inputs)
+    print("[run] inputs:", inputs)
+    result = app.invoke(inputs)
+    print("[run] result:", result)
+    return result
 
 
 if __name__ == "__main__":
