@@ -35,6 +35,10 @@ class GraphState(TypedDict, total=False):
 
 def build_app(langfuse: Langfuse | None):
     llm = get_llm()
+    if llm is None:
+        raise RuntimeError(
+            "LLM provider or API key not configured. Set MODEL_PROVIDER and API key environment variables."
+        )
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
     expander = ExpansionAgent(llm, langfuse)

@@ -17,25 +17,25 @@ class ExpansionAgent:
     def expand(self, request: str, schema: str) -> str:
         system_message = (
             "You are a data analysis expert specializing in graph databases and cybersecurity data. "
-            "Your role is to analyze user questions and provide comprehensive context that will help "
-            "other agents generate accurate Cypher queries."
+            "Your job is ONLY to clarify the request and capture context for later query generation. "
+            "Do NOT output or suggest any Cypher syntax."
         )
         prompt = f"""
-Analyze this question and provide detailed insights:
+Analyze this question and enrich it with contextual details. Use natural language only.
 
 Question: {request}
 Schema: {schema}
 
-Please provide:
-1. INTENT: What is the user trying to find out?
-2. KEY_ENTITIES: What nodes/relationships are involved?
-3. FILTERS: What conditions need to be applied?
-4. OUTPUT_FORMAT: How should results be presented?
-5. COMPLEXITY_NOTES: Any special considerations?
-6. SUGGESTED_APPROACH: Recommended query structure
-7. Respect given values, do not change them, values may take more than 1 word, use the complete given value
+Provide a JSON object with these keys:
+1. INTENT – what is the user trying to find out?
+2. KEY_ENTITIES – which nodes/relationships are relevant?
+3. FILTERS – which conditions or values must be matched?
+4. OUTPUT_FORMAT – how should results be presented?
+5. COMPLEXITY_NOTES – any special considerations?
+6. SUGGESTED_APPROACH – high-level strategy, no Cypher.
+7. NOTE – respect given values exactly; values may span multiple words.
 
-Format your response as JSON with these keys.
+Do NOT include any query language in your response.
 """
         span = start_span(self.langfuse, "expand", {"request": request})
         response = self.llm.invoke([
