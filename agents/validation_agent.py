@@ -17,9 +17,11 @@ class ValidationAgent:
     def validate(self, fragment: str) -> Tuple[bool, list | str]:
         span = start_span(self.langfuse, "validate", {"fragment": fragment})
         try:
+            if not fragment or not fragment.strip():
+                raise ValueError("Empty query")
             with self.driver.session() as session:
                 result = session.run(fragment)
-                rows = [r.data() for r in result]
+                rows = result.data() or []
             finish_span(span, {"rows": rows})
             return True, rows
         except Exception as e:  # pragma: no cover - network errors
