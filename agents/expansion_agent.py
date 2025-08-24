@@ -15,16 +15,32 @@ class ExpansionAgent:
         self.langfuse = langfuse
 
     def expand(self, request: str, schema: str) -> str:
-        prompt = (
-            "You are an assistant that expands short user requests.\n"
-            "Schema information: {schema}\n"
-            "If the request is ambiguous, ask for clarification.\n"
-            "Return a detailed, schema-grounded description.".format(schema=schema)
+        system_message = (
+            "You are a data analysis expert specializing in graph databases and cybersecurity data. "
+            "Your job is ONLY to clarify the request and capture context for later query generation. "
+            "Do NOT output or suggest any Cypher syntax."
         )
+        prompt = f"""
+Analyze this question and enrich it with contextual details. Use natural language only.
+
+Question: {request}
+Schema: {schema}
+
+Provide a JSON object with these keys:
+1. INTENT – what is the user trying to find out?
+2. KEY_ENTITIES – which nodes/relationships are relevant?
+3. FILTERS – which conditions or values must be matched?
+4. OUTPUT_FORMAT – how should results be presented?
+5. COMPLEXITY_NOTES – any special considerations?
+6. SUGGESTED_APPROACH – high-level strategy, no Cypher.
+7. NOTE – respect given values exactly; values may span multiple words.
+
+Do NOT include any query language in your response.
+"""
         span = start_span(self.langfuse, "expand", {"request": request})
         response = self.llm.invoke([
-            ("system", "You expand user requests for Cypher queries."),
-            ("user", f"Request: {request}\n{prompt}"),
+            ("system", system_message),
+            ("user", prompt),
         ])
         expanded = response.content if hasattr(response, "content") else str(response)
         finish_span(span, {"expanded": expanded})

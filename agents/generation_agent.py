@@ -41,15 +41,23 @@ class GenerationAgent:
 
     def generate(self, subproblem: str, schema: str) -> str:
         span = start_span(self.langfuse, "generate", {"subproblem": subproblem})
-        prompt = (
-            "Schema: {schema}\n"
-            "Subproblem: {subproblem}\n"
-            "Generate a Cypher fragment that addresses the subproblem.".format(
-                schema=schema, subproblem=subproblem
-            )
+        system_message = (
+            "You are a Cypher specialist. Produce a syntactically correct fragment that solves the task. "
+            "Return only plain Cypher with no comments, backticks, or explanation. "
+            "Do not nest MATCH inside WHERE. Use only read-only clauses (MATCH, WHERE, WITH, RETURN, ORDER BY, LIMIT). "
+            "Relationship properties like 'technique' or 'protocol' appear on [:ATTACKS {technique: 'value'}]. "
+            "Relationships follow (ip:IP)-[:ATTACKS]->(country:Country). "
+            "Preserve provided values exactly."
         )
+        prompt = f"""
+Subproblem: {subproblem}
+Schema: {schema}
+
+Write only the Cypher fragment that addresses the subproblem.
+No prose, no comments, no markdown.
+"""
         response = self.llm.invoke([
-            ("system", "You generate Cypher query fragments."),
+            ("system", system_message),
             ("user", prompt),
         ])
         fragment = response.content if hasattr(response, "content") else str(response)

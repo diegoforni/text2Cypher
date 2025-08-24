@@ -137,7 +137,11 @@ if __name__ == "__main__":
         print("Usage: python main.py 'your question'")
         raise SystemExit(1)
 
-    schema = """Nodes and relationships are provided by the Neo4j database schema."""
+    schema = (
+        "Nodes: (:IP {address, botnet, pulse_ids}), (:Country {name}), (:ASN {number})\n"
+        "Relationships: (ip:IP)-[:ATTACKS {technique, protocol, technology, industry, pulse_id, documented_create_date, documented_modified_date}]->(country:Country)\n"
+        "Additional: (ip:IP)-[:FROM]->(country:Country), (ip:IP)-[:BELONGS_TO]->(asn:ASN)"
+    )
     output = run(sys.argv[1], schema)
     if output.get("error"):
         print("Validation failed:", output["error"])

@@ -16,13 +16,20 @@ class DecompositionAgent:
 
     def decompose(self, description: str) -> List[str]:
         span = start_span(self.langfuse, "decompose", {"description": description})
-        prompt = (
-            "Split the following description into independent Cypher subproblems.\n"
-            "Return a JSON list of subproblem strings.\n"
-            f"Description: {description}"
+        system_message = (
+            "You are a task planner for graph analysis. "
+            "Break problems into natural-language tasks without writing any Cypher."
         )
+        prompt = f"""
+From the analysis below, list the distinct tasks required to build the final query.
+Each item must be a concise natural-language description; do NOT include Cypher.
+
+Analysis: {description}
+
+Return a JSON array of task strings using the original values verbatim.
+"""
         response = self.llm.invoke([
-            ("system", "You are a task decomposition assistant."),
+            ("system", system_message),
             ("user", prompt),
         ])
         text = response.content if hasattr(response, "content") else str(response)
