@@ -4,7 +4,7 @@ from typing import List, Optional
 from langchain_core.language_models import BaseChatModel
 from langfuse import Langfuse
 
-from .langfuse_utils import start_span, finish_span
+from .langfuse_utils import start_trace, finish_trace
 
 
 class CompositionAgent:
@@ -16,8 +16,8 @@ class CompositionAgent:
 
     def compose(self, fragments: List[str]) -> str:
         query = "\n".join(fragments)
-        span = start_span(self.langfuse, "compose", {"fragments": fragments})
-        finish_span(span, {"query": query})
+        trace = start_trace(self.langfuse, "compose", {"fragments": fragments})
+        finish_trace(trace, {"query": query})
         return query
 
     def explain(self, query: str, schema: str) -> str:
@@ -30,8 +30,11 @@ Query: {query}
 
 Explain in a short sentence what this query does.
 """
+        trace = start_trace(self.langfuse, "explain", {"query": query, "schema": schema})
         response = self.llm.invoke([
             ("system", system_message),
             ("user", prompt),
         ])
-        return response.content if hasattr(response, "content") else str(response)
+        explanation = response.content if hasattr(response, "content") else str(response)
+        finish_trace(trace, {"explanation": explanation})
+        return explanation

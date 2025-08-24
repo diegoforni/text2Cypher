@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 
 from langfuse import Langfuse
 
-from .langfuse_utils import start_span, finish_span
+from .langfuse_utils import start_trace, finish_trace
 from neo4j import Driver
 
 
@@ -15,13 +15,13 @@ class ValidationAgent:
         self.langfuse = langfuse
 
     def validate(self, fragment: str) -> Tuple[bool, list | str]:
-        span = start_span(self.langfuse, "validate", {"fragment": fragment})
+        trace = start_trace(self.langfuse, "validate", {"fragment": fragment})
         try:
             with self.driver.session() as session:
                 result = session.run(fragment)
                 rows = [r.data() for r in result]
-            finish_span(span, {"rows": rows})
+            finish_trace(trace, {"rows": rows})
             return True, rows
         except Exception as e:  # pragma: no cover - network errors
-            finish_span(span, error=e)
+            finish_trace(trace, error=e)
             return False, str(e)
