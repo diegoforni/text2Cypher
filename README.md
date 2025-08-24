@@ -16,6 +16,7 @@ This project uses multiple agents to translate natural language questions into N
    NEO4J_URI=bolt://localhost:7687
    NEO4J_USER=neo4j
    NEO4J_PASSWORD=neo4j
+   NEO4J_DB=neo4j
    LANGFUSE_SECRET_KEY=
    LANGFUSE_PUBLIC_KEY=
    LANGFUSE_HOST=https://cloud.langfuse.com

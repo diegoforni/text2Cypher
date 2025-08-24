@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 from langfuse import Langfuse
 from neo4j import Driver
 
+from config import NEO4J_DB
 from .langfuse_utils import start_trace, finish_trace
 
 
@@ -19,7 +20,7 @@ class ValidationAgent:
         try:
             if not fragment or not fragment.strip():
                 raise ValueError("Empty query")
-            with self.driver.session() as session:
+            with self.driver.session(database=NEO4J_DB) as session:
                 result = session.run(fragment)
                 rows = [r.data() for r in result]
             finish_trace(trace, {"rows": rows})
