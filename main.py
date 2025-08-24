@@ -8,6 +8,7 @@ from neo4j import GraphDatabase
 from agents.expansion_agent import ExpansionAgent
 from agents.decomposition_agent import DecompositionAgent
 from agents.generation_agent import GenerationAgent
+from agents.matcher_agent import MatcherAgent
 from agents.validation_agent import ValidationAgent
 from agents.composition_agent import CompositionAgent
 from config import (
@@ -43,7 +44,8 @@ def build_app(langfuse: Langfuse | None):
 
     expander = ExpansionAgent(llm, langfuse)
     decomposer = DecompositionAgent(llm, langfuse)
-    generator = GenerationAgent(llm, driver, langfuse)
+    matcher = MatcherAgent(llm, driver, langfuse)
+    generator = GenerationAgent(llm, langfuse)
     validator = ValidationAgent(driver, langfuse)
     composer = CompositionAgent(llm, langfuse)
 
@@ -63,6 +65,7 @@ def build_app(langfuse: Langfuse | None):
         print("[generate] subproblems:", state["subproblems"])
         fragments: List[str] = []
         for sub in state["subproblems"]:
+            pairs = matcher.match(sub, state["schema"])
             previous_fragment = ""
             error_message = ""
             for _ in range(3):  # initial + 2 retries
@@ -73,7 +76,7 @@ def build_app(langfuse: Langfuse | None):
                         f"Error: {error_message}\n"
                         "Please fix and regenerate."
                     )
-                fragment = generator.generate(prompt, state["schema"])
+                fragment = generator.generate(prompt, state["schema"], pairs)
                 ok, result = validator.validate(fragment)
                 if ok:
                     fragments.append(fragment)
