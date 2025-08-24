@@ -2,9 +2,9 @@
 from typing import Optional, Tuple
 
 from langfuse import Langfuse
+from neo4j import Driver
 
 from .langfuse_utils import start_trace, finish_trace
-from neo4j import Driver
 
 
 class ValidationAgent:
@@ -17,6 +17,8 @@ class ValidationAgent:
     def validate(self, fragment: str) -> Tuple[bool, list | str]:
         trace = start_trace(self.langfuse, "validate", {"fragment": fragment})
         try:
+            if not fragment or not fragment.strip():
+                raise ValueError("Empty query")
             with self.driver.session() as session:
                 result = session.run(fragment)
                 rows = [r.data() for r in result]
