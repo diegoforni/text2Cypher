@@ -15,16 +15,32 @@ class ExpansionAgent:
         self.langfuse = langfuse
 
     def expand(self, request: str, schema: str) -> str:
-        prompt = (
-            "You are an assistant that expands short user requests.\n"
-            "Schema information: {schema}\n"
-            "If the request is ambiguous, ask for clarification.\n"
-            "Return a detailed, schema-grounded description.".format(schema=schema)
+        system_message = (
+            "You are a data analysis expert specializing in graph databases and cybersecurity data. "
+            "Your role is to analyze user questions and provide comprehensive context that will help "
+            "other agents generate accurate Cypher queries."
         )
+        prompt = f"""
+Analyze this question and provide detailed insights:
+
+Question: {request}
+Schema: {schema}
+
+Please provide:
+1. INTENT: What is the user trying to find out?
+2. KEY_ENTITIES: What nodes/relationships are involved?
+3. FILTERS: What conditions need to be applied?
+4. OUTPUT_FORMAT: How should results be presented?
+5. COMPLEXITY_NOTES: Any special considerations?
+6. SUGGESTED_APPROACH: Recommended query structure
+7. Respect given values, do not change them, values may take more than 1 word, use the complete given value
+
+Format your response as JSON with these keys.
+"""
         span = start_span(self.langfuse, "expand", {"request": request})
         response = self.llm.invoke([
-            ("system", "You expand user requests for Cypher queries."),
-            ("user", f"Request: {request}\n{prompt}"),
+            ("system", system_message),
+            ("user", prompt),
         ])
         expanded = response.content if hasattr(response, "content") else str(response)
         finish_span(span, {"expanded": expanded})
