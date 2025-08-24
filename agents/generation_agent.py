@@ -4,6 +4,8 @@ from typing import List, Optional
 from langchain_core.language_models import BaseChatModel
 from langfuse import Langfuse
 
+from .langfuse_utils import start_span, finish_span
+
 
 def _lexical_match(term: str, candidates: List[str]) -> str:
     """Return candidate with longest common substring to term."""
@@ -38,9 +40,7 @@ class GenerationAgent:
         self.langfuse = langfuse
 
     def generate(self, subproblem: str, schema: str) -> str:
-        if self.langfuse:
-            span = self.langfuse.span("generate")
-            span.log_inputs({"subproblem": subproblem})
+        span = start_span(self.langfuse, "generate", {"subproblem": subproblem})
         prompt = (
             "Schema: {schema}\n"
             "Subproblem: {subproblem}\n"
@@ -53,7 +53,5 @@ class GenerationAgent:
             ("user", prompt),
         ])
         fragment = response.content if hasattr(response, "content") else str(response)
-        if self.langfuse:
-            span.log_outputs({"fragment": fragment})
-            span.end()
+        finish_span(span, {"fragment": fragment})
         return fragment
