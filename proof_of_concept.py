@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from typing import Optional, Dict, List, Tuple
 import time
 
+from config import NEO4J_DB
+
 # CONFIG
 NEO4J_URI = "bolt://localhost:7687"
 NEO4J_USER = "neo4j"
@@ -253,7 +255,7 @@ class ValidatorAgent(CypherAgent):
     def _execute_query(self, query: str, neo4j_driver) -> QueryAttempt:
         """Execute query and return result"""
         try:
-            with neo4j_driver.session(database='aaaa') as s:
+            with neo4j_driver.session(database=NEO4J_DB) as s:
                 # Validate syntax first
                 s.run("EXPLAIN " + query).single()
                 

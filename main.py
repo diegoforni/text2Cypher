@@ -43,7 +43,7 @@ def build_app(langfuse: Langfuse | None):
 
     expander = ExpansionAgent(llm, langfuse)
     decomposer = DecompositionAgent(llm, langfuse)
-    generator = GenerationAgent(llm, langfuse)
+    generator = GenerationAgent(llm, driver, langfuse)
     validator = ValidationAgent(driver, langfuse)
     composer = CompositionAgent(llm, langfuse)
 

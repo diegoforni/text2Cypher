@@ -1,9 +1,12 @@
 """Generation agent that creates Cypher fragments for each subproblem."""
 from typing import List, Optional
+import re
 
 from langchain_core.language_models import BaseChatModel
 from langfuse import Langfuse
+from neo4j import Driver
 
+from config import NEO4J_DB
 from .langfuse_utils import start_trace, finish_trace
 
 
@@ -35,9 +38,37 @@ def _longest_common_substring(a: str, b: str) -> str:
 class GenerationAgent:
     """Generate Cypher query fragments using the schema as context."""
 
-    def __init__(self, llm: BaseChatModel, langfuse: Optional[Langfuse] = None):
+    def __init__(
+        self, llm: BaseChatModel, driver: Driver, langfuse: Optional[Langfuse] = None
+    ):
         self.llm = llm
+        self.driver = driver
         self.langfuse = langfuse
+
+    def _fetch_candidates(self, term: str) -> List[str]:
+        query = (
+            "MATCH (n) "
+            "UNWIND keys(n) AS k "
+            "WITH DISTINCT toString(n[k]) AS val "
+            "WHERE val IS NOT NULL AND toLower(val) CONTAINS toLower($term) "
+            "RETURN val"
+        )
+        with self.driver.session(database=NEO4J_DB) as session:
+            result = session.run(query, term=term)
+            return [r["val"] for r in result]
+
+    def _match_db_value(self, value: str) -> str:
+        candidates = self._fetch_candidates(value)
+        if not candidates:
+            return value
+        return _lexical_match(value, candidates)
+
+    def _apply_db_matching(self, fragment: str) -> str:
+        def repl(match: re.Match[str]) -> str:
+            val = match.group(1)
+            return f"'{self._match_db_value(val)}'"
+
+        return re.sub(r"'([^']+)'", repl, fragment)
 
     def generate(self, subproblem: str, schema: str) -> str:
         trace = start_trace(self.langfuse, "generate", {"subproblem": subproblem})
@@ -61,5 +92,6 @@ class GenerationAgent:
             ("user", prompt),
         ])
         fragment = response.content if hasattr(response, "content") else str(response)
+        fragment = self._apply_db_matching(fragment)
         finish_trace(trace, {"fragment": fragment})
         return fragment
