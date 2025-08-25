@@ -2,6 +2,13 @@
 
 This project uses multiple agents to translate natural language questions into Neo4j Cypher queries with optional validation and explanation.
 
+## Project structure
+
+- `agents/` – multi-step pipeline components (see [agents/README.md](agents/README.md)).
+- `config.py` – configuration helpers for environment and models.
+- `main.py` – command-line entry point that orchestrates the agents.
+- `proof_of_concept.py` – early script retained for reference.
+
 ## Setup
 
 1. Install dependencies:

@@ -1,3 +1,5 @@
+"""Configuration helpers for environment variables and LLM selection."""
+
 import os
 from dotenv import load_dotenv
 from typing import Optional

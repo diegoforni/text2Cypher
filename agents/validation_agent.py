@@ -16,6 +16,7 @@ class ValidationAgent:
         self.langfuse = langfuse
 
     def validate(self, fragment: str) -> Tuple[bool, list | str]:
+        """Execute ``fragment`` and return ``(True, rows)`` or ``(False, error)``."""
         span = start_span(self.langfuse, "validate", {"fragment": fragment})
         try:
             if not fragment or not fragment.strip():
