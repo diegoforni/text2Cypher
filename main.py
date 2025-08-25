@@ -54,7 +54,7 @@ def build_app(trace: Any | None):
         print("[expand] request:", state["request"])
         expanded = expander.expand(state["request"], state["schema"])
         print("[expand] expanded:", expanded)
-        return {"expanded": expanded }
+        return {"expanded": expanded}
 
     def decompose_node(state: GraphState):
         print("[decompose] expanded:", state["expanded"])
@@ -77,7 +77,7 @@ def build_app(trace: Any | None):
                         f"Error: {error_message}\n"
                         "Please fix and regenerate."
                     )
-                fragment = generator.generate(prompt, state["schema"], pairs)
+                fragment = generator.generate(prompt, state["schema"])
                 ok, result = validator.validate(fragment)
                 if ok:
                     fragments.append(fragment)
@@ -166,7 +166,8 @@ if __name__ == "__main__":
 
     schema = (
         "Nodes: (:IP {address, botnet, pulse_ids}), (:Country {name}), (:ASN {number})\n"
-        "Relationships: (ip:IP)-[:ATTACKS {technique, protocol, technology, industry, pulse_id, documented_create_date, documented_modified_date}]->(country:Country)\n"
+        "Relationships: (ip:IP)-[:ATTACKS {technique, protocol, technology, industry, pulse_id, "
+        "documented_create_date, documented_modified_date}]->(country:Country)\n"
         "Additional: (ip:IP)-[:FROM]->(country:Country), (ip:IP)-[:BELONGS_TO]->(asn:ASN)"
     )
     output = run(sys.argv[1], schema)
