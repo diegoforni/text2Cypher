@@ -1,7 +1,8 @@
 """Expansion agent that clarifies and enriches user requests."""
-from typing import Any, Optional
+from typing import Optional
 
 from langchain_core.language_models import BaseChatModel
+from langfuse import Langfuse
 
 from .langfuse_utils import start_span, finish_span
 
@@ -9,12 +10,11 @@ from .langfuse_utils import start_span, finish_span
 class ExpansionAgent:
     """Ask clarifying questions and produce a schema-grounded description."""
 
-    def __init__(self, llm: BaseChatModel, trace: Optional[Any] = None):
+    def __init__(self, llm: BaseChatModel, langfuse: Optional[Langfuse] = None):
         self.llm = llm
-        self.trace = trace
+        self.langfuse = langfuse
 
     def expand(self, request: str, schema: str) -> str:
-        """Return a structured natural-language expansion of ``request``."""
         system_message = (
             "You are a data analysis expert specializing in graph databases and cybersecurity data. "
             "Your job is ONLY to clarify the request and capture context for later query generation. "
@@ -37,7 +37,7 @@ Provide a JSON object with these keys:
 
 Do NOT include any query language in your response.
 """
-        span = start_span(self.trace, "expand", {"request": request})
+        span = start_span(self.langfuse, "expand", {"request": request})
         response = self.llm.invoke([
             ("system", system_message),
             ("user", prompt),
@@ -45,3 +45,4 @@ Do NOT include any query language in your response.
         expanded = response.content if hasattr(response, "content") else str(response)
         finish_span(span, {"expanded": expanded})
         return expanded
+

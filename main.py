@@ -11,7 +11,6 @@ from agents.generation_agent import GenerationAgent
 from agents.matcher_agent import MatcherAgent
 from agents.validation_agent import ValidationAgent
 from agents.composition_agent import CompositionAgent
-from agents.langfuse_utils import start_trace, finish_trace
 from config import (
     get_llm,
     NEO4J_URI,
@@ -37,7 +36,7 @@ class GraphState(TypedDict, total=False):
     error: str
 
 
-def build_app(trace: Any | None):
+def build_app(langfuse: Langfuse | None):
     """Create the LangGraph application wiring all agents."""
     llm = get_llm()
     if llm is None:
@@ -46,12 +45,12 @@ def build_app(trace: Any | None):
         )
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
-    expander = ExpansionAgent(llm, trace)
-    decomposer = DecompositionAgent(llm, trace)
-    matcher = MatcherAgent(llm, driver, trace)
-    generator = GenerationAgent(llm, trace)
-    validator = ValidationAgent(driver, trace)
-    composer = CompositionAgent(llm, trace)
+    expander = ExpansionAgent(llm, langfuse)
+    decomposer = DecompositionAgent(llm, langfuse)
+    matcher = MatcherAgent(llm, driver, langfuse)
+    generator = GenerationAgent(llm, langfuse)
+    validator = ValidationAgent(driver, langfuse)
+    composer = CompositionAgent(llm, langfuse)
 
     def expand_node(state: GraphState):
         """LLM expansion step for the original request."""
@@ -140,7 +139,6 @@ def build_app(trace: Any | None):
 def run(question: str, schema: str) -> GraphState:
     """Execute the agent workflow for ``question`` against ``schema``."""
     langfuse = None
-    trace = None
     if LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY:
         print("[run] Initializing Langfuse client")
         langfuse = Langfuse(
@@ -148,23 +146,14 @@ def run(question: str, schema: str) -> GraphState:
             public_key=LANGFUSE_PUBLIC_KEY,
             host=LANGFUSE_HOST,
         )
-        trace = start_trace(langfuse, "run", {"question": question, "schema": schema})
     else:
         print("[run] Langfuse credentials not provided")
-    app = build_app(trace)
+    app = build_app(langfuse)
     inputs: GraphState = {"request": question, "schema": schema}
     print("[run] inputs:", inputs)
-    try:
-        result = app.invoke(inputs)
-        print("[run] result:", result)
-        finish_trace(trace, result)
-        return result
-    except Exception as e:
-        finish_trace(trace, error=e)
-        raise
-    finally:
-        if langfuse:
-            langfuse.flush()
+    result = app.invoke(inputs)
+    print("[run] result:", result)
+    return result
 
 
 if __name__ == "__main__":
