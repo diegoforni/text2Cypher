@@ -1,10 +1,11 @@
 """Generation agent that creates Cypher fragments for each subproblem."""
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import List, Optional
 import json
 
 from langchain_core.language_models import BaseChatModel
+from langfuse import Langfuse
 
 from .langfuse_utils import start_span, finish_span
 
@@ -12,12 +13,12 @@ from .langfuse_utils import start_span, finish_span
 class GenerationAgent:
     """Generate Cypher query fragments using verified field values."""
 
-    def __init__(self, llm: BaseChatModel, trace: Optional[Any] = None):
+    def __init__(self, llm: BaseChatModel, langfuse: Optional[Langfuse] = None):
         self.llm = llm
-        self.trace = trace
+        self.langfuse = langfuse
 
     def generate(self, subproblem: str, schema: str, pairs: List[dict]) -> str:
-        span = start_span(self.trace, "generate", {"subproblem": subproblem, "pairs": pairs})
+        span = start_span(self.langfuse, "generate", {"subproblem": subproblem, "pairs": pairs})
         system_message = (
             "You are a Cypher query expert. Use the provided database schema to solve the given subproblem. "
             "Always produce a complete Cypher fragment ending with a RETURN clause. "
