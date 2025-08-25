@@ -14,6 +14,7 @@ class DecompositionAgent:
         self.trace = trace
 
     def decompose(self, description: str) -> List[str]:
+        """Split an expanded description into discrete task statements."""
         span = start_span(self.trace, "decompose", {"description": description})
         system_message = (
             "You are a task planner for graph analysis. "

@@ -18,6 +18,7 @@ class GenerationAgent:
         self.langfuse = langfuse
 
     def generate(self, subproblem: str, schema: str, pairs: List[dict]) -> str:
+        """Produce a Cypher fragment solving ``subproblem`` using ``schema`` and ``pairs``."""
         span = start_span(self.langfuse, "generate", {"subproblem": subproblem, "pairs": pairs})
         system_message = (
             "You are a Cypher query expert. Use the provided database schema to solve the given subproblem. "

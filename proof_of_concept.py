@@ -1,3 +1,5 @@
+"""Standalone multi-agent prototype used during early experimentation."""
+
 import re
 import json
 import requests

@@ -14,6 +14,7 @@ class ExpansionAgent:
         self.trace = trace
 
     def expand(self, request: str, schema: str) -> str:
+        """Return a structured natural-language expansion of ``request``."""
         system_message = (
             "You are a data analysis expert specializing in graph databases and cybersecurity data. "
             "Your job is ONLY to clarify the request and capture context for later query generation. "

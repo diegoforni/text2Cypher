@@ -14,12 +14,14 @@ class CompositionAgent:
         self.trace = trace
 
     def compose(self, fragments: List[str]) -> str:
+        """Join validated ``fragments`` into a single Cypher query."""
         query = "\n".join(fragments)
         span = start_span(self.trace, "compose", {"fragments": fragments})
         finish_span(span, {"query": query})
         return query
 
     def explain(self, query: str, schema: str) -> str:
+        """Generate a brief natural-language explanation of ``query``."""
         system_message = (
             "You are a cybersecurity-focused expert who explains Cypher queries clearly and concisely."
         )

@@ -24,6 +24,8 @@ from config import (
 
 
 class GraphState(TypedDict, total=False):
+    """State container passed between workflow nodes."""
+
     request: str
     schema: str
     expanded: str
@@ -36,6 +38,7 @@ class GraphState(TypedDict, total=False):
 
 
 def build_app(trace: Any | None):
+    """Create the LangGraph application wiring all agents."""
     llm = get_llm()
     if llm is None:
         raise RuntimeError(
@@ -51,18 +54,21 @@ def build_app(trace: Any | None):
     composer = CompositionAgent(llm, trace)
 
     def expand_node(state: GraphState):
+        """LLM expansion step for the original request."""
         print("[expand] request:", state["request"])
         expanded = expander.expand(state["request"], state["schema"])
         print("[expand] expanded:", expanded)
         return {"expanded": expanded}
 
     def decompose_node(state: GraphState):
+        """Break the expanded request into subproblems."""
         print("[decompose] expanded:", state["expanded"])
         subproblems = decomposer.decompose(state["expanded"])
         print("[decompose] subproblems:", subproblems)
         return {"subproblems": subproblems}
 
     def generate_node(state: GraphState):
+        """Create and validate fragments for each subproblem."""
         print("[generate] subproblems:", state["subproblems"])
         fragments: List[str] = []
         for sub in state["subproblems"]:
@@ -88,12 +94,14 @@ def build_app(trace: Any | None):
         return {"fragments": fragments}
 
     def compose_node(state: GraphState):
+        """Combine validated fragments into a final query."""
         print("[compose] fragments:", state["fragments"])
         query = composer.compose(state["fragments"])
         print("[compose] final_query:", query)
         return {"final_query": query}
 
     def final_validate_node(state: GraphState):
+        """Run a final validation pass over the composed query."""
         print("[final_validate] final_query:", state["final_query"])
         ok, res = validator.validate(state["final_query"])
         print("[final_validate] ok:", ok, "result:", res)
@@ -102,6 +110,7 @@ def build_app(trace: Any | None):
         return {"error": res}
 
     def explain_node(state: GraphState):
+        """Generate a human-readable explanation of the final query."""
         if "error" in state:
             print("[explain] skipping due to error")
             return {}
@@ -129,6 +138,7 @@ def build_app(trace: Any | None):
 
 
 def run(question: str, schema: str) -> GraphState:
+    """Execute the agent workflow for ``question`` against ``schema``."""
     langfuse = None
     trace = None
     if LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY:
