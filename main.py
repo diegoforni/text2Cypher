@@ -77,7 +77,7 @@ def build_app(trace: Any | None):
                         f"Error: {error_message}\n"
                         "Please fix and regenerate."
                     )
-                fragment = generator.generate(prompt, state["schema"])
+                fragment = generator.generate(prompt, state["schema"], pairs)
                 ok, result = validator.validate(fragment)
                 if ok:
                     fragments.append(fragment)
