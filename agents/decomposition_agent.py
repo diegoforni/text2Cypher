@@ -1,21 +1,20 @@
 """Decomposition agent that splits expanded descriptions into subproblems."""
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from langchain_core.language_models import BaseChatModel
-from langfuse import Langfuse
 
-from .langfuse_utils import start_trace, finish_trace
+from .langfuse_utils import start_span, finish_span
 
 
 class DecompositionAgent:
     """Break a problem description into independent subproblems."""
 
-    def __init__(self, llm: BaseChatModel, langfuse: Optional[Langfuse] = None):
+    def __init__(self, llm: BaseChatModel, trace: Optional[Any] = None):
         self.llm = llm
-        self.langfuse = langfuse
+        self.trace = trace
 
     def decompose(self, description: str) -> List[str]:
-        trace = start_trace(self.langfuse, "decompose", {"description": description})
+        span = start_span(self.trace, "decompose", {"description": description})
         system_message = (
             "You are a task planner for graph analysis. "
             "Break problems into natural-language tasks without writing any Cypher."
@@ -37,5 +36,5 @@ Return a JSON array of task strings using the original values verbatim.
             subproblems = [p.strip() for p in eval(text) if p.strip()]
         except Exception:
             subproblems = [text]
-        finish_trace(trace, {"subproblems": subproblems})
+        finish_span(span, {"subproblems": subproblems})
         return subproblems
