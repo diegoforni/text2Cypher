@@ -1,24 +1,23 @@
 """Matcher agent that resolves literal values against the database."""
 from __future__ import annotations
 
-from typing import List, Dict, Optional
+from typing import Any, Dict, List, Optional
 import json
 
 from langchain_core.language_models import BaseChatModel
-from langfuse import Langfuse
 from neo4j import Driver
 
 from config import NEO4J_DB
-from .langfuse_utils import start_trace, finish_trace
+from .langfuse_utils import start_span, finish_span
 
 
 class MatcherAgent:
     """Extract field-value pairs and match them to database values."""
 
-    def __init__(self, llm: BaseChatModel, driver: Driver, langfuse: Optional[Langfuse] = None):
+    def __init__(self, llm: BaseChatModel, driver: Driver, trace: Optional[Any] = None):
         self.llm = llm
         self.driver = driver
-        self.langfuse = langfuse
+        self.trace = trace
 
     def _extract_pairs(self, description: str, schema: str) -> List[Dict[str, str]]:
         """Use the LLM to extract label/property/value triples from text."""
@@ -67,11 +66,11 @@ Use the exact input value.
 
     def match(self, description: str, schema: str) -> List[Dict[str, str]]:
         """Extract and resolve field-value pairs in description."""
-        trace = start_trace(self.langfuse, "match", {"description": description})
+        span = start_span(self.trace, "match", {"description": description})
         pairs = self._extract_pairs(description, schema)
         resolved: List[Dict[str, str]] = []
         for pair in pairs:
             matched = self._exact_match(pair["label"], pair["property"], pair["value"])
             resolved.append({"label": pair["label"], "property": pair["property"], "value": matched})
-        finish_trace(trace, {"pairs": resolved})
+        finish_span(span, {"pairs": resolved})
         return resolved
