@@ -11,6 +11,7 @@ from agents.generation_agent import GenerationAgent
 from agents.matcher_agent import MatcherAgent
 from agents.validation_agent import ValidationAgent
 from agents.composition_agent import CompositionAgent
+from agents.langfuse_utils import start_span, finish_span
 from config import (
     get_llm,
     NEO4J_URI,
@@ -138,22 +139,29 @@ def build_app(langfuse: Langfuse | None):
 
 def run(question: str, schema: str) -> GraphState:
     """Execute the agent workflow for ``question`` against ``schema``."""
-    langfuse = None
+    langfuse_client = None
+    trace = None
     if LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY:
         print("[run] Initializing Langfuse client")
-        langfuse = Langfuse(
+        langfuse_client = Langfuse(
             secret_key=LANGFUSE_SECRET_KEY,
             public_key=LANGFUSE_PUBLIC_KEY,
             host=LANGFUSE_HOST,
         )
+        trace = start_span(langfuse_client, "run", {"request": question, "schema": schema})
     else:
         print("[run] Langfuse credentials not provided")
-    app = build_app(langfuse)
+    app = build_app(trace)
     inputs: GraphState = {"request": question, "schema": schema}
     print("[run] inputs:", inputs)
-    result = app.invoke(inputs)
-    print("[run] result:", result)
-    return result
+    try:
+        result = app.invoke(inputs)
+        print("[run] result:", result)
+        finish_span(trace, {"result": result})
+        return result
+    except Exception as e:  # pragma: no cover - simple passthrough
+        finish_span(trace, error=e)
+        raise
 
 
 if __name__ == "__main__":
