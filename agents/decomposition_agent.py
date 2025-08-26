@@ -1,5 +1,7 @@
 """Decomposition agent that splits expanded descriptions into subproblems."""
 from typing import List, Optional
+import json
+import re
 
 from langchain_core.language_models import BaseChatModel
 from langfuse import Langfuse
@@ -37,10 +39,13 @@ Return a JSON array of task strings using the original values verbatim.
             ("user", prompt),
         ])
         text = response.content if hasattr(response, "content") else str(response)
+        cleaned = re.sub(r"^```[a-zA-Z]*\n", "", text.strip())
+        cleaned = re.sub(r"\n```$", "", cleaned).strip()
         try:
-            subproblems = [p.strip() for p in eval(text) if p.strip()]
+            data = json.loads(cleaned)
+            subproblems = [p.strip() for p in data if isinstance(p, str) and p.strip()]
         except Exception:
-            subproblems = [text]
+            subproblems = [cleaned]
         finish_span(span, {"response": text, "subproblems": subproblems})
         return subproblems
 
