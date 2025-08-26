@@ -16,23 +16,25 @@ class DecompositionAgent:
         self.llm = llm
         self.langfuse = langfuse
 
-    def decompose(self, description: str) -> List[str]:
+    def decompose(self, description: str, schema: str) -> List[str]:
         system_message = (
             "You are a task planner for graph analysis. "
-            "Break problems into natural-language tasks without writing any Cypher."
+            "Use the provided database schema to reason about the minimal set of "
+            "independent natural-language tasks needed to build the final Cypher query. "
+            "Only split the problem when multiple queries must be composed together."
         )
         prompt = f"""
-From the analysis below, list the distinct tasks required to build the final query.
-Each item must be a concise natural-language description; do NOT include Cypher.
-
-Analysis: {description}
-
-Return a JSON array of task strings using the original values verbatim.
-"""
+Schema:\n{schema}\n\n"""
+        prompt += (
+            "From the analysis below, determine whether more than one independent query is required.\n"
+            "If so, list each query as a concise natural-language task. Otherwise, return a single-item list with the original problem.\n\n"
+            f"Analysis: {description}\n\n"
+            "Return a JSON array of task strings using the original values verbatim."
+        )
         span = start_span(
             self.langfuse,
             "decompose",
-            {"description": description, "system": system_message, "prompt": prompt},
+            {"description": description, "schema": schema, "system": system_message, "prompt": prompt},
         )
         response = self.llm.invoke([
             ("system", system_message),

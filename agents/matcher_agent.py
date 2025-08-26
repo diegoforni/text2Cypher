@@ -25,14 +25,16 @@ class MatcherAgent:
         """Use the LLM to extract label/property/value triples from text."""
         system_message = (
             "You extract field-value pairs for a Neo4j graph. "
-            "For each literal value, identify the node label or relationship type and property where it belongs. "
+            "Only include literal values that were explicitly provided by the user. "
+            "For each such value, identify the node label or relationship type and property where it belongs. "
+            "If the text contains no literal values, return an empty array. "
             "Return JSON objects with keys: kind, label, property, value. "
             "Kind must be 'node' or 'relationship'."
         )
         prompt = f"""
 Schema:\n{schema}\n
 Text:\n{description}\n
-List every literal value that must appear in the query with its element type, label and property name.
+List every user-provided literal value that must appear in the query with its element type, label and property name. If the text has none, return [].
 Return a JSON array like:
 [
   {{"kind": "node", "label": "Person", "property": "name", "value": "Tom"}}
