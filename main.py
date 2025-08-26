@@ -2,7 +2,7 @@
 from typing import List, TypedDict, Any
 import json
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
 
 from langgraph.graph import StateGraph, END
@@ -218,7 +218,7 @@ def build_app(llm: object, langfuse: Langfuse | None):
 def save_run(question: str, result: GraphState, llm: object) -> None:
     """Save the question, generated Cypher, and database response to JSON."""
     metadata = {
-        "time": datetime.utcnow().isoformat() + "Z",
+        "time": datetime.now(timezone.utc).isoformat(),
         "model": getattr(llm, "model_name", getattr(llm, "model", None)),
         "provider": MODEL_PROVIDER,
         "commit": None,

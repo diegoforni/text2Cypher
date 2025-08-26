@@ -41,13 +41,40 @@ Schema:\n{schema}\n\n"""
             ("user", prompt),
         ])
         text = response.content if hasattr(response, "content") else str(response)
-        cleaned = re.sub(r"^```[a-zA-Z]*\n", "", text.strip())
+
+        # Robust parsing: strip code fences, then try to extract the JSON array
+        cleaned = text.strip()
+        cleaned = re.sub(r"^```[a-zA-Z]*\n", "", cleaned)
         cleaned = re.sub(r"\n```$", "", cleaned).strip()
+
+        # Some models wrap the array in prose; extract the outermost brackets if present
+        start, end = cleaned.find("["), cleaned.rfind("]")
+        candidate = cleaned[start : end + 1] if start != -1 and end != -1 else cleaned
+
+        subproblems: List[str]
         try:
-            data = json.loads(cleaned)
-            subproblems = [p.strip() for p in data if isinstance(p, str) and p.strip()]
+            data = json.loads(candidate)
+            if isinstance(data, list):
+                subproblems = [p.strip() for p in data if isinstance(p, str) and p.strip()]
+            else:
+                # Not a list; fall back to original description
+                subproblems = [description]
         except Exception:
-            subproblems = [cleaned]
+            # If the model echoed the instruction or failed to return JSON, use the original description
+            if "From the analysis below" in cleaned:
+                subproblems = [description]
+            else:
+                # Last resort: split by lines/bullets, otherwise keep as single task
+                lines = [ln.strip("- •\t ") for ln in cleaned.splitlines() if ln.strip()]
+                subproblems = lines or [description]
+
+        # Guard: if the model echoed the instruction inside a parsed list or produced nothing, fallback
+        INSTRUCTION_PHRASE = "From the analysis below"
+        if (
+            not subproblems
+            or all(INSTRUCTION_PHRASE.lower() in s.lower() for s in subproblems)
+        ):
+            subproblems = [description]
+
         finish_span(span, {"response": text, "subproblems": subproblems})
         return subproblems
-

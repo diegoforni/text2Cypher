@@ -31,9 +31,7 @@ Provide a JSON object with these keys:
 2. KEY_ENTITIES – which nodes/relationships are relevant?
 3. FILTERS – which conditions or values must be matched?
 4. OUTPUT_FORMAT – how should results be presented?
-5. COMPLEXITY_NOTES – any special considerations?
-6. SUGGESTED_APPROACH – high-level strategy, no Cypher.
-7. NOTE – respect given values exactly; values may span multiple words.
+5. SUGGESTED_APPROACH – high-level strategy, no Cypher.
 
 Do NOT include any query language in your response.
 """
