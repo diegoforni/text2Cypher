@@ -28,6 +28,30 @@ from config import (
 )
 
 
+class TokenCountingLLM:
+    """Wrapper to accumulate token usage from LLM responses."""
+
+    def __init__(self, llm: object):
+        self._llm = llm
+        self.input_tokens = 0
+        self.output_tokens = 0
+
+    def invoke(self, *args, **kwargs):
+        response = self._llm.invoke(*args, **kwargs)
+        metadata = getattr(response, "response_metadata", {}) or {}
+        usage = metadata.get("token_usage") or metadata.get("usage_metadata") or {}
+        self.input_tokens += usage.get("prompt_tokens") or usage.get("prompt_token_count") or 0
+        self.output_tokens += (
+            usage.get("completion_tokens")
+            or usage.get("candidates_token_count")
+            or 0
+        )
+        return response
+
+    def __getattr__(self, name: str):
+        return getattr(self._llm, name)
+
+
 class GraphState(TypedDict, total=False):
     """State container passed between workflow nodes."""
 
@@ -147,11 +171,17 @@ def save_run(question: str, result: GraphState, llm: object) -> None:
         )
     except Exception:
         pass
+    usage = {
+        "input": getattr(llm, "input_tokens", 0),
+        "output": getattr(llm, "output_tokens", 0),
+    }
+    usage["total"] = usage["input"] + usage["output"]
     payload = {
         "question": question,
         "cypher": result.get("final_query"),
         "response": result.get("results"),
         "error": result.get("error"),
+        "token_usage": usage,
         "metadata": metadata,
     }
     with open("last_run.json", "w", encoding="utf-8") as f:
@@ -165,6 +195,7 @@ def run(question: str, schema: str) -> GraphState:
         raise RuntimeError(
             "LLM provider or API key not configured. Set MODEL_PROVIDER and API key environment variables."
         )
+    llm = TokenCountingLLM(llm)
     langfuse_client = None
     trace = None
     if LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY:
