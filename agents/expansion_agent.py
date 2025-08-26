@@ -37,7 +37,11 @@ Provide a JSON object with these keys:
 
 Do NOT include any query language in your response.
 """
-        span = start_span(self.langfuse, "expand", {"request": request, "schema": schema})
+        span = start_span(
+            self.langfuse,
+            "expand",
+            {"request": request, "schema": schema, "system": system_message, "prompt": prompt},
+        )
         response = self.llm.invoke([
             ("system", system_message),
             ("user", prompt),
@@ -45,4 +49,3 @@ Do NOT include any query language in your response.
         expanded = response.content if hasattr(response, "content") else str(response)
         finish_span(span, {"expanded": expanded})
         return expanded
-

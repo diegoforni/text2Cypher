@@ -19,7 +19,6 @@ class GenerationAgent:
 
     def generate(self, subproblem: str, schema: str, pairs: List[dict]) -> str:
         """Produce a Cypher fragment solving ``subproblem`` using ``schema`` and ``pairs``."""
-        span = start_span(self.langfuse, "generate", {"subproblem": subproblem, "pairs": pairs})
         system_message = (
             "You are a Cypher query expert. Use the provided database schema to solve the given subproblem. "
             "Always produce a complete Cypher fragment ending with a RETURN clause. "
@@ -28,13 +27,26 @@ class GenerationAgent:
             "Allowed clauses: MATCH, WHERE, WITH, RETURN, ORDER BY, LIMIT. "
             "Properties like 'technique' or 'protocol' are on relationships [:ATTACKS {technique: \"value\"}]. "
             "Attack relationships follow the pattern (ip:IP)-[:ATTACKS]->(country:Country). "
-            "Use WITH or multiple MATCH statements for complex logic and preserve provided values exactly."
+            "Use WITH or multiple MATCH statements for complex logic and preserve provided values exactly. "
+            "When the subproblem text mentions a literal value, look it up in the verified field values list "
+            "and use the verified form in the Cypher fragment."
         )
         prompt = (
             f"Database schema:\n{schema}\n\n"
             f"Subproblem:\n{subproblem}\n\n"
             f"Verified field values:\n{json.dumps(pairs)}\n\n"
             "Return ONLY the Cypher fragment."
+        )
+        span = start_span(
+            self.langfuse,
+            "generate",
+            {
+                "subproblem": subproblem,
+                "schema": schema,
+                "pairs": pairs,
+                "system": system_message,
+                "prompt": prompt,
+            },
         )
         response = self.llm.invoke([
             ("system", system_message),
