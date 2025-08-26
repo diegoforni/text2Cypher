@@ -17,8 +17,15 @@ class GenerationAgent:
         self.llm = llm
         self.langfuse = langfuse
 
-    def generate(self, subproblem: str, schema: str, pairs: List[dict]) -> str:
-        """Produce a Cypher fragment solving ``subproblem`` using ``schema`` and ``pairs``."""
+    def generate(
+        self, subproblem: str, schema: str, pairs: Optional[List[dict]] = None
+    ) -> str:
+        """Produce a Cypher fragment solving ``subproblem`` using ``schema`` and ``pairs``.
+
+        ``pairs`` is optional and defaults to an empty list when no values have been
+        pre-verified.
+        """
+        pairs = pairs or []
         system_message = (
             "You are a Cypher query expert. Use the provided database schema to solve the given subproblem. "
             "Always produce a complete Cypher fragment ending with a RETURN clause. "
