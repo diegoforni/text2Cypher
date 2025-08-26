@@ -37,7 +37,7 @@ Provide a JSON object with these keys:
 
 Do NOT include any query language in your response.
 """
-        span = start_span(self.langfuse, "expand", {"request": request})
+        span = start_span(self.langfuse, "expand", {"request": request, "schema": schema})
         response = self.llm.invoke([
             ("system", system_message),
             ("user", prompt),
