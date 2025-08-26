@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 from langchain_core.language_models import BaseChatModel
 from neo4j import Driver
@@ -142,19 +143,19 @@ Use the exact input value.
         span = start_span(self.langfuse, "match", {"description": description, "schema": schema})
         pairs = self._extract_pairs(description, schema)
         print("[matcher] pairs after extraction:", pairs)
-        resolved: List[Dict[str, str]] = []
-        for pair in pairs:
+        def resolve(pair: Dict[str, str]) -> Dict[str, str]:
             matched = self._match_value(
                 pair["kind"], pair["label"], pair["property"], pair["value"]
             )
-            resolved.append(
-                {
-                    "kind": pair["kind"],
-                    "label": pair["label"],
-                    "property": pair["property"],
-                    "value": matched,
-                }
-            )
+            return {
+                "kind": pair["kind"],
+                "label": pair["label"],
+                "property": pair["property"],
+                "value": matched,
+            }
+
+        with ThreadPoolExecutor(max_workers=len(pairs) or 1) as executor:
+            resolved = list(executor.map(resolve, pairs))
         print("[matcher] resolved pairs:", resolved)
         finish_span(span, {"extracted": pairs, "pairs": resolved})
         return resolved
