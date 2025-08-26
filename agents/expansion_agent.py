@@ -1,5 +1,7 @@
 """Expansion agent that clarifies and enriches user requests."""
-from typing import Optional
+from typing import Optional, Tuple
+import json
+import re
 
 from langchain_core.language_models import BaseChatModel
 from langfuse import Langfuse
@@ -14,7 +16,7 @@ class ExpansionAgent:
         self.llm = llm
         self.langfuse = langfuse
 
-    def expand(self, request: str, schema: str) -> str:
+    def expand(self, request: str, schema: str) -> Tuple[str, bool, str]:
         system_message = (
             "You are a data analysis expert specializing in graph databases and cybersecurity data. "
             "Your job is ONLY to clarify the request and capture context for later query generation. "
@@ -26,12 +28,14 @@ Analyze this question and enrich it with contextual details. Use natural languag
 Question: {request}
 Schema: {schema}
 
-Provide a JSON object with these keys:
+Provide a single JSON object with these keys (no code fences):
 1. INTENT – what is the user trying to find out?
 2. KEY_ENTITIES – which nodes/relationships are relevant?
 3. FILTERS – which conditions or values must be matched?
 4. OUTPUT_FORMAT – how should results be presented?
 5. SUGGESTED_APPROACH – high-level strategy (no Cypher).
+6. NEEDS_DECOMPOSITION – boolean. True only if multiple independent Cypher queries must be generated and composed; false if a single query suffices.
+7. SINGLE_TASK – a concise single-sentence task to pass directly to the generator when NEEDS_DECOMPOSITION is false.
 """
         span = start_span(
             self.langfuse,
@@ -47,6 +51,49 @@ Provide a JSON object with these keys:
             ("system", system_message),
             ("user", prompt),
         ])
-        expanded = response.content if hasattr(response, "content") else str(response)
-        finish_span(span, {"expanded": expanded})
-        return expanded
+        raw = response.content if hasattr(response, "content") else str(response)
+
+        # Robustly parse JSON while keeping the original text as expanded output
+        expanded_text = raw.strip()
+        # Strip code fences if any
+        expanded_text = re.sub(r"^```[a-zA-Z]*\n", "", expanded_text)
+        expanded_text = re.sub(r"\n```$", "", expanded_text).strip()
+
+        # Try to extract the JSON object
+        needs_decomposition = False
+        single_task = request.strip() if isinstance(request, str) else ""
+        obj_text = expanded_text
+        start, end = obj_text.find("{"), obj_text.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            obj_text = obj_text[start : end + 1]
+        try:
+            data = json.loads(obj_text)
+            # Extract fields with safe fallbacks
+            nd_key = next((k for k in data.keys() if str(k).lower() == "needs_decomposition"), None)
+            if nd_key is not None:
+                needs_decomposition = bool(data.get(nd_key))
+            st_key = next((k for k in data.keys() if str(k).lower() == "single_task"), None)
+            if st_key is not None and isinstance(data.get(st_key), str) and data.get(st_key).strip():
+                single_task = data.get(st_key).strip()
+            else:
+                # Fallback: reconstruct a sensible single-task from INTENT and FILTERS
+                intent_key = next((k for k in data.keys() if str(k).lower() == "intent"), None)
+                filters_key = next((k for k in data.keys() if str(k).lower() == "filters"), None)
+                intent_txt = str(data.get(intent_key)).strip() if intent_key else ""
+                filters_txt = data.get(filters_key)
+                if isinstance(filters_txt, (list, tuple)):
+                    filters_txt = ", ".join(str(x) for x in filters_txt if str(x).strip())
+                filters_txt = str(filters_txt).strip() if filters_txt else ""
+                parts = [p for p in [intent_txt, filters_txt] if p]
+                if parts:
+                    single_task = "; ".join(parts)
+        except Exception:
+            # If parsing fails, keep defaults
+            pass
+
+        finish_span(span, {
+            "expanded": expanded_text,
+            "needs_decomposition": needs_decomposition,
+            "single_task": single_task,
+        })
+        return expanded_text, needs_decomposition, single_task

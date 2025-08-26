@@ -90,6 +90,7 @@ class GraphState(TypedDict, total=False):
     request: str
     schema: str
     expanded: str
+    needs_decomposition: bool
     subproblems: List[str]
     fragments: List[str]
     final_query: str
@@ -113,9 +114,19 @@ def build_app(llm: object, langfuse: Langfuse | None):
     composer = CompositionAgent(llm, langfuse)
 
     def expand_node(state: GraphState):
-        """LLM expansion step for the original request."""
-        expanded = expander.expand(state["request"], state["schema"])
-        return {"expanded": expanded}
+        """LLM expansion step for the original request.
+
+        Also decides whether decomposition is necessary. When decomposition is
+        not needed, pre-populate a single subproblem to allow routing directly
+        to generation.
+        """
+        expanded, needs_decomp, single_task = expander.expand(
+            state["request"], state["schema"]
+        )
+        out: GraphState = {"expanded": expanded, "needs_decomposition": needs_decomp}
+        if not needs_decomp:
+            out["subproblems"] = [single_task or state["request"]]
+        return out
 
     def decompose_node(state: GraphState):
         """Break the expanded request into subproblems."""
@@ -123,13 +134,47 @@ def build_app(llm: object, langfuse: Langfuse | None):
         return {"subproblems": subproblems}
 
     def generate_node(state: GraphState):
-        """Create and validate fragments for each subproblem in parallel."""
+        """Create and validate fragments for each subproblem in parallel.
 
-        subproblems = state["subproblems"]
+        Optimization:
+        - Only invoke the matcher when the generated fragment appears to use
+          specific literal values (e.g., quoted strings in property filters).
+        """
+
+        import re
+
+        def _needs_matching(fragment: str) -> bool:
+            """Heuristic to decide if matcher is needed.
+
+            We look for quoted string literals that are typically used in
+            property comparisons (e.g., WHERE n.name = "Alice", IN ["US"],
+            CONTAINS 'http', STARTS WITH 'foo', ENDS WITH 'bar').
+            Numbers (e.g., LIMIT 10) are ignored by focusing on quotes.
+            """
+            if not fragment:
+                return False
+            # Fast check: any quoted string present at all?
+            if not re.search(r"['\"]([^'\"]+)['\"]", fragment):
+                return False
+            # Stronger signal: quoted string near common comparison operators/keywords
+            patterns = [
+                r"\bWHERE\b[\s\S]{0,200}?['\"]([^'\"]+)['\"]",
+                r"=\s*['\"]([^'\"]+)['\"]",
+                r"\bIN\b\s*\[[^\]]*['\"][^\]]*\]",
+                r"\bCONTAINS\b\s*['\"]([^'\"]+)['\"]",
+                r"\bSTARTS\s+WITH\b\s*['\"]([^'\"]+)['\"]",
+                r"\bENDS\s+WITH\b\s*['\"]([^'\"]+)['\"]",
+            ]
+            return any(re.search(p, fragment, flags=re.IGNORECASE) for p in patterns)
+
+        subproblems = state.get("subproblems") or [state.get("expanded") or state.get("request", "")]
         previous = [""] * len(subproblems)
         errors = [""] * len(subproblems)
         fragments: List[str | None] = [None] * len(subproblems)
         verified_pairs: List[List[dict]] = [[] for _ in subproblems]
+        # If we are in single-task mode, capture the validated rows to avoid re-validation
+        single_mode = len(subproblems) == 1
+        single_rows: Any | None = None
 
         for _ in range(3):
             pending = [i for i, f in enumerate(fragments) if f is None]
@@ -149,10 +194,13 @@ def build_app(llm: object, langfuse: Langfuse | None):
                 fragment = local_generator.generate(
                     prompt, state["schema"], pairs=verified_pairs[idx]
                 )
-                # After generation, verify any literal values directly in the fragment
-                pairs = matcher.match(fragment, state["schema"])
-                for p in pairs:
-                    fragment = fragment.replace(p["original"], p["value"])
+                # After generation, verify any literal values only if clearly needed
+                pairs: List[dict] = []
+                if _needs_matching(fragment):
+                    pairs = matcher.match(fragment, state["schema"])
+                    for p in pairs:
+                        # Preserve the fragment structure; replace only exact literal
+                        fragment = fragment.replace(p["original"], p["value"])
                 return idx, fragment, pairs
 
             with ThreadPoolExecutor(max_workers=len(pending)) as executor:
@@ -168,6 +216,8 @@ def build_app(llm: object, langfuse: Langfuse | None):
             ):
                 if ok:
                     fragments[idx] = fragment
+                    if single_mode:
+                        single_rows = result
                 else:
                     previous[idx] = fragment
                     errors[idx] = str(result)
@@ -175,15 +225,32 @@ def build_app(llm: object, langfuse: Langfuse | None):
                         verified_pairs[idx] = pairs
 
         final_fragments = [f for f in fragments if f]
-        return {"fragments": final_fragments}
+        out: GraphState = {"fragments": final_fragments}
+        # Optimization: if there is only one validated fragment, we already have its rows;
+        # surface them now so we can skip the final validation pass.
+        if single_mode and len(final_fragments) == 1 and single_rows is not None:
+            out["results"] = single_rows
+        return out
 
     def compose_node(state: GraphState):
-        """Combine validated fragments into a final query."""
-        query = composer.compose(state["fragments"])
+        """Combine validated fragments into a final query.
+
+        Optimization: if only one fragment exists, bypass composer.
+        """
+        frags = state["fragments"]
+        if len(frags) == 1:
+            return {"final_query": frags[0]}
+        query = composer.compose(frags)
         return {"final_query": query}
 
     def final_validate_node(state: GraphState):
-        """Run a final validation pass over the composed query."""
+        """Run a final validation pass over the composed query.
+
+        If the query was already validated in single-task mode and results are present,
+        skip re-validating to avoid executing the same Cypher twice.
+        """
+        if state.get("results") is not None:
+            return {}
         ok, res = validator.validate(state["final_query"])
         if ok:
             return {"results": res}
@@ -204,7 +271,16 @@ def build_app(llm: object, langfuse: Langfuse | None):
     workflow.add_node("final_validate", final_validate_node)
     workflow.add_node("explain", explain_node)
 
-    workflow.add_edge("expand", "decompose")
+    # Route from expand -> decompose or generate based on expander's decision
+    def _route_after_expand(s: GraphState) -> str:
+        return "decompose" if s.get("needs_decomposition") else "generate"
+
+    # langgraph supports conditional edges; map route keys to node names
+    workflow.add_conditional_edges(
+        "expand",
+        _route_after_expand,
+        {"decompose": "decompose", "generate": "generate"},
+    )
     workflow.add_edge("decompose", "generate")
     workflow.add_edge("generate", "compose")
     workflow.add_edge("compose", "final_validate")
