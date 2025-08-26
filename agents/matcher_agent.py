@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 import json
+from difflib import SequenceMatcher
 
 from langchain_core.language_models import BaseChatModel
 from neo4j import Driver
@@ -24,15 +25,17 @@ class MatcherAgent:
         """Use the LLM to extract label/property/value triples from text."""
         system_message = (
             "You extract field-value pairs for a Neo4j graph. "
-            "Return JSON array objects with keys: label, property, value."
+            "For each literal value, identify the node label or relationship type and property where it belongs. "
+            "Return JSON objects with keys: kind, label, property, value. "
+            "Kind must be 'node' or 'relationship'."
         )
         prompt = f"""
 Schema:\n{schema}\n
 Text:\n{description}\n
-List every literal value that must appear in the query with its node label and property name.
+List every literal value that must appear in the query with its element type, label and property name.
 Return a JSON array like:
 [
-  {{"label": "Person", "property": "name", "value": "Tom"}}
+  {{"kind": "node", "label": "Person", "property": "name", "value": "Tom"}}
 ]
 Use the exact input value.
 """
@@ -41,37 +44,86 @@ Use the exact input value.
             ("user", prompt),
         ])
         text = response.content if hasattr(response, "content") else str(response)
+        print("[matcher] LLM response:", text)
         try:
             pairs = json.loads(text)
             if not isinstance(pairs, list):  # ensure list
                 raise ValueError
-            return [
-                {"label": p.get("label", ""), "property": p.get("property", ""), "value": p.get("value", "")}
+            parsed = [
+                {
+                    "kind": p.get("kind", ""),
+                    "label": p.get("label", ""),
+                    "property": p.get("property", ""),
+                    "value": p.get("value", ""),
+                }
                 for p in pairs
                 if p.get("value")
             ]
+            print("[matcher] extracted pairs:", parsed)
+            return parsed
         except Exception:
+            print("[matcher] failed to parse pairs")
             return []
 
-    def _exact_match(self, label: str, prop: str, value: str) -> str:
-        """Fetch all values for label.prop and return exact match if present."""
+    def _match_value(self, kind: str, label: str, prop: str, value: str) -> str:
+        """Return the closest database value for ``label.prop`` to ``value``."""
         if not label or not prop:
             return value
-        cypher = f"MATCH (n:`{label}`) WHERE n.{prop} IS NOT NULL RETURN DISTINCT toString(n.{prop}) AS val"
-        with self.driver.session(database=NEO4J_DB) as session:
-            results = [r["val"] for r in session.run(cypher)]
+
+        def fetch(cypher: str) -> List[str]:
+            with self.driver.session(database=NEO4J_DB) as session:
+                values = [r["val"] for r in session.run(cypher)]
+                print(f"[matcher] fetched {values} for {cypher}")
+                return values
+
+        if kind.lower() == "relationship":
+            cypher = (
+                f"MATCH ()-[r:`{label}`]-() WHERE r.{prop} IS NOT NULL "
+                f"RETURN DISTINCT toString(r.{prop}) AS val"
+            )
+        else:
+            cypher = (
+                f"MATCH (n:`{label}`) WHERE n.{prop} IS NOT NULL "
+                f"RETURN DISTINCT toString(n.{prop}) AS val"
+            )
+        results = fetch(cypher)
+
+        if not results:
+            print(f"[matcher] no candidates found for {label}.{prop}")
+            return value
+
         for candidate in results:
             if str(candidate).lower() == value.lower():
+                print(f"[matcher] exact match for {value} -> {candidate}")
                 return str(candidate)
-        return value
+
+        scored = [
+            (
+                SequenceMatcher(None, str(candidate).lower(), value.lower()).ratio(),
+                str(candidate),
+            )
+            for candidate in results
+        ]
+        best_score, best_val = max(scored, key=lambda x: x[0])
+        print(f"[matcher] best match for '{value}' -> '{best_val}' (score {best_score})")
+        return best_val if best_score >= 0.6 else value
 
     def match(self, description: str, schema: str) -> List[Dict[str, str]]:
         """Extract and resolve field-value pairs in description."""
         span = start_span(self.langfuse, "match", {"description": description})
         pairs = self._extract_pairs(description, schema)
+        print("[matcher] pairs after extraction:", pairs)
         resolved: List[Dict[str, str]] = []
         for pair in pairs:
-            matched = self._exact_match(pair["label"], pair["property"], pair["value"])
-            resolved.append({"label": pair["label"], "property": pair["property"], "value": matched})
+            matched = self._match_value(pair["kind"], pair["label"], pair["property"], pair["value"])
+            resolved.append(
+                {
+                    "kind": pair["kind"],
+                    "label": pair["label"],
+                    "property": pair["property"],
+                    "value": matched,
+                }
+            )
+        print("[matcher] resolved pairs:", resolved)
         finish_span(span, {"pairs": resolved})
         return resolved

@@ -55,21 +55,16 @@ def build_app(langfuse: Langfuse | None):
 
     def expand_node(state: GraphState):
         """LLM expansion step for the original request."""
-        print("[expand] request:", state["request"])
         expanded = expander.expand(state["request"], state["schema"])
-        print("[expand] expanded:", expanded)
         return {"expanded": expanded}
 
     def decompose_node(state: GraphState):
         """Break the expanded request into subproblems."""
-        print("[decompose] expanded:", state["expanded"])
         subproblems = decomposer.decompose(state["expanded"])
-        print("[decompose] subproblems:", subproblems)
         return {"subproblems": subproblems}
 
     def generate_node(state: GraphState):
         """Create and validate fragments for each subproblem."""
-        print("[generate] subproblems:", state["subproblems"])
         fragments: List[str] = []
         for sub in state["subproblems"]:
             pairs = matcher.match(sub, state["schema"])
@@ -90,21 +85,16 @@ def build_app(langfuse: Langfuse | None):
                     break
                 previous_fragment = fragment
                 error_message = str(result)
-        print("[generate] fragments:", fragments)
         return {"fragments": fragments}
 
     def compose_node(state: GraphState):
         """Combine validated fragments into a final query."""
-        print("[compose] fragments:", state["fragments"])
         query = composer.compose(state["fragments"])
-        print("[compose] final_query:", query)
         return {"final_query": query}
 
     def final_validate_node(state: GraphState):
         """Run a final validation pass over the composed query."""
-        print("[final_validate] final_query:", state["final_query"])
         ok, res = validator.validate(state["final_query"])
-        print("[final_validate] ok:", ok, "result:", res)
         if ok:
             return {"results": res}
         return {"error": res}
@@ -112,10 +102,8 @@ def build_app(langfuse: Langfuse | None):
     def explain_node(state: GraphState):
         """Generate a human-readable explanation of the final query."""
         if "error" in state:
-            print("[explain] skipping due to error")
             return {}
         explanation = composer.explain(state["final_query"], state["schema"])
-        print("[explain] explanation:", explanation)
         return {"explanation": explanation}
 
     workflow = StateGraph(GraphState)
@@ -142,21 +130,16 @@ def run(question: str, schema: str) -> GraphState:
     langfuse_client = None
     trace = None
     if LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY:
-        print("[run] Initializing Langfuse client")
         langfuse_client = Langfuse(
             secret_key=LANGFUSE_SECRET_KEY,
             public_key=LANGFUSE_PUBLIC_KEY,
             host=LANGFUSE_HOST,
         )
         trace = start_span(langfuse_client, "run", {"request": question, "schema": schema})
-    else:
-        print("[run] Langfuse credentials not provided")
     app = build_app(trace)
     inputs: GraphState = {"request": question, "schema": schema}
-    print("[run] inputs:", inputs)
     try:
         result = app.invoke(inputs)
-        print("[run] result:", result)
         finish_span(trace, {"result": result})
         return result
     except Exception as e:  # pragma: no cover - simple passthrough
@@ -168,7 +151,6 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage: python main.py 'your question'")
         raise SystemExit(1)
 
     schema = (
@@ -177,10 +159,4 @@ if __name__ == "__main__":
         "documented_create_date, documented_modified_date}]->(country:Country)\n"
         "Additional: (ip:IP)-[:FROM]->(country:Country), (ip:IP)-[:BELONGS_TO]->(asn:ASN)"
     )
-    output = run(sys.argv[1], schema)
-    if output.get("error"):
-        print("Validation failed:", output["error"])
-    else:
-        print("Cypher query:\n", output["final_query"])
-        print("Explanation:", output.get("explanation"))
-        print("Results:", output.get("results"))
+    run(sys.argv[1], schema)
