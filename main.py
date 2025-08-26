@@ -129,18 +129,16 @@ def build_app(llm: object, langfuse: Langfuse | None):
         previous = [""] * len(subproblems)
         errors = [""] * len(subproblems)
         fragments: List[str | None] = [None] * len(subproblems)
+        verified_pairs: List[List[dict]] = [[] for _ in subproblems]
 
         for _ in range(3):
             pending = [i for i, f in enumerate(fragments) if f is None]
             if not pending:
                 break
 
-            def generate(idx: int) -> tuple[int, str]:
+            def generate(idx: int) -> tuple[int, str, List[dict]]:
                 sub = subproblems[idx]
                 local_generator = GenerationAgent(llm, langfuse)
-                # Let the LLM decide whether any user-provided values need verification.
-                # The matcher returns an empty list when no literal values are present.
-                pairs = matcher.match(sub, state["schema"])
                 prompt = sub
                 if previous[idx]:
                     prompt += (
@@ -148,22 +146,33 @@ def build_app(llm: object, langfuse: Langfuse | None):
                         f"Error: {errors[idx]}\n"
                         "Please fix and regenerate."
                     )
-                fragment = local_generator.generate(prompt, state["schema"], pairs)
-                return idx, fragment
+                fragment = local_generator.generate(
+                    prompt, state["schema"], pairs=verified_pairs[idx]
+                )
+                # After generation, verify any literal values directly in the fragment
+                pairs = matcher.match(fragment, state["schema"])
+                for p in pairs:
+                    fragment = fragment.replace(p["original"], p["value"])
+                return idx, fragment, pairs
 
             with ThreadPoolExecutor(max_workers=len(pending)) as executor:
                 generated = list(executor.map(generate, pending))
 
-            indices = [i for i, _ in generated]
-            candidates = [frag for _, frag in generated]
+            indices = [i for i, _, _ in generated]
+            candidates = [frag for _, frag, _ in generated]
+            pair_lists = [p for _, _, p in generated]
             results = validator.validate_many(candidates)
 
-            for idx, fragment, (ok, result) in zip(indices, candidates, results):
+            for idx, fragment, pairs, (ok, result) in zip(
+                indices, candidates, pair_lists, results
+            ):
                 if ok:
                     fragments[idx] = fragment
                 else:
                     previous[idx] = fragment
                     errors[idx] = str(result)
+                    if pairs:
+                        verified_pairs[idx] = pairs
 
         final_fragments = [f for f in fragments if f]
         return {"fragments": final_fragments}

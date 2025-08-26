@@ -14,32 +14,32 @@ from .langfuse_utils import start_span, finish_span
 
 
 class MatcherAgent:
-    """Extract field-value pairs and match them to database values."""
+    """Extract literal values from Cypher and match them to database values."""
 
     def __init__(self, llm: BaseChatModel, driver: Driver, langfuse: Optional[Langfuse] = None):
         self.llm = llm
         self.driver = driver
         self.langfuse = langfuse
 
-    def _extract_pairs(self, description: str, schema: str) -> List[Dict[str, str]]:
-        """Use the LLM to extract label/property/value triples from text."""
+    def _extract_pairs(self, query: str, schema: str) -> List[Dict[str, str]]:
+        """Use the LLM to extract label/property/value triples from a Cypher query."""
         system_message = (
-            "You extract field-value pairs for a Neo4j graph. "
-            "Only include literal values that were explicitly provided by the user. "
-            "For each such value, identify the node label or relationship type and property where it belongs. "
-            "If the text contains no literal values, return an empty array. "
-            "Return JSON objects with keys: kind, label, property, value. "
-            "Kind must be 'node' or 'relationship'."
+            "You are given a Cypher query for a Neo4j database. "
+            "Identify literal string or numeric values that appear directly in node or relationship property comparisons. "
+            "Ignore numbers used for LIMIT, SKIP, or unrelated arithmetic. "
+            "For each literal, return the element kind ('node' or 'relationship'), its label or relationship type, "
+            "the property name, and the exact value from the query. "
+            "If the query has no such literals, return an empty JSON array."
         )
         prompt = f"""
 Schema:\n{schema}\n
-Text:\n{description}\n
-List every user-provided literal value that must appear in the query with its element type, label and property name. If the text has none, return [].
+Query:\n{query}\n
+List every literal value used in a property comparison in the query with its element type, label or relationship type, and property name. If none are present, return [].
 Return a JSON array like:
 [
   {{"kind": "node", "label": "Person", "property": "name", "value": "Tom"}}
 ]
-Use the exact input value.
+Use the exact value from the query.
 """
         span = start_span(
             self.langfuse,
@@ -140,11 +140,18 @@ Use the exact input value.
         )
         return best_val if best_len > 0 else value
 
-    def match(self, description: str, schema: str) -> List[Dict[str, str]]:
-        """Extract and resolve field-value pairs in description."""
-        span = start_span(self.langfuse, "match", {"description": description, "schema": schema})
-        pairs = self._extract_pairs(description, schema)
-        print("[matcher] pairs after extraction:", pairs)
+    def match(self, query: str, schema: str) -> List[Dict[str, str]]:
+        """Extract and resolve literal property values in ``query``.
+
+        Returns a list of dictionaries with the original extracted value under
+        ``original`` and the database-resolved value under ``value``.
+        """
+        span = start_span(
+            self.langfuse, "match", {"query": query, "schema": schema}
+        )
+        extracted = self._extract_pairs(query, schema)
+        print("[matcher] pairs after extraction:", extracted)
+
         def resolve(pair: Dict[str, str]) -> Dict[str, str]:
             matched = self._match_value(
                 pair["kind"], pair["label"], pair["property"], pair["value"]
@@ -153,11 +160,12 @@ Use the exact input value.
                 "kind": pair["kind"],
                 "label": pair["label"],
                 "property": pair["property"],
+                "original": pair["value"],
                 "value": matched,
             }
 
-        with ThreadPoolExecutor(max_workers=len(pairs) or 1) as executor:
-            resolved = list(executor.map(resolve, pairs))
+        with ThreadPoolExecutor(max_workers=len(extracted) or 1) as executor:
+            resolved = list(executor.map(resolve, extracted))
         print("[matcher] resolved pairs:", resolved)
-        finish_span(span, {"extracted": pairs, "pairs": resolved})
+        finish_span(span, {"extracted": extracted, "pairs": resolved})
         return resolved
