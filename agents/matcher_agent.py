@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 import json
-from difflib import SequenceMatcher
 
 from langchain_core.language_models import BaseChatModel
 from neo4j import Driver
@@ -115,18 +114,28 @@ Use the exact input value.
                 print(f"[matcher] exact match for {value} -> {candidate}")
                 return str(candidate)
 
+        def lcs_length(a: str, b: str) -> int:
+            a, b = a.lower(), b.lower()
+            m, n = len(a), len(b)
+            dp = [[0] * (n + 1) for _ in range(m + 1)]
+            longest = 0
+            for i in range(1, m + 1):
+                for j in range(1, n + 1):
+                    if a[i - 1] == b[j - 1]:
+                        dp[i][j] = dp[i - 1][j - 1] + 1
+                        if dp[i][j] > longest:
+                            longest = dp[i][j]
+            return longest
+
         scored = [
-            (
-                SequenceMatcher(None, str(candidate).lower(), value.lower()).ratio(),
-                str(candidate),
-            )
+            (lcs_length(str(candidate), value), str(candidate))
             for candidate in results
         ]
-        best_score, best_val = max(scored, key=lambda x: x[0])
+        best_len, best_val = max(scored, key=lambda x: x[0])
         print(
-            f"[matcher] best match for '{value}' -> '{best_val}' (score {best_score})",
+            f"[matcher] best match for '{value}' -> '{best_val}' (LCS length {best_len})",
         )
-        return best_val if best_score >= 0.6 else value
+        return best_val if best_len > 0 else value
 
     def match(self, description: str, schema: str) -> List[Dict[str, str]]:
         """Extract and resolve field-value pairs in description."""
