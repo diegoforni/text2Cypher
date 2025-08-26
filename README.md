@@ -1,40 +1,41 @@
 # Text2Cypher
 
-This project uses multiple agents to translate natural language questions into Neo4j Cypher queries with optional validation and explanation.
+Multi‑agent pipeline that converts natural‑language questions into validated Neo4j Cypher, with optional explanation and tracing.
 
-## Project structure
+## Project Structure
 
-- `agents/` – multi-step pipeline components (see [agents/README.md](agents/README.md)).
-- `config.py` – configuration helpers for environment and models.
-- `main.py` – command-line entry point that orchestrates the agents.
-- `proof_of_concept.py` – early script retained for reference.
+- `agents/`: pipeline components (see `agents/README.md`).
+- `config.py`: environment + model selection.
+- `main.py`: LangGraph workflow entrypoint and CLI.
+- `proof_of_concept.py`: early reference script.
 
 ## Setup
 
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. Configure environment variables in a `.env` file (an example is provided in `.env.example`):
-   ```bash
-   MODEL_PROVIDER=openai  # or gemini
-   OPENAI_API_KEY=your-openai-key
-   GEMINI_API_KEY=your-gemini-key
-   NEO4J_URI=bolt://localhost:7687
-   NEO4J_USER=neo4j
-   NEO4J_PASSWORD=neo4j
-   NEO4J_DB=neo4j
-   LANGFUSE_SECRET_KEY=
-   LANGFUSE_PUBLIC_KEY=
-   LANGFUSE_HOST=https://cloud.langfuse.com
-   ```
+- Install dependencies: `pip install -r requirements.txt`
+- Create a `.env` (see `.env.example`) with:
+  - `MODEL_PROVIDER`: `openai` or `gemini`
+  - `OPENAI_API_KEY` or `GEMINI_API_KEY`
+  - `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, `NEO4J_DB`
+  - Optional Langfuse: `LANGFUSE_SECRET_KEY`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_HOST`
+
+Default chat models (as configured in `config.py`):
+- OpenAI: `gpt-5-nano`
+- Gemini: `gemini-2.5-flash`
 
 ## Usage
 
-Ensure your Neo4j instance is running and the `.env` values match your environment. Run the console entry point with a question:
+Ensure Neo4j is running and credentials are correct. Then run:
 
 ```bash
 python main.py "Who attacked Country X?"
 ```
 
-The system will attempt to generate and validate a Cypher query, printing the query, explanation, and results.
+What happens:
+- Expands and decomposes the request, generates candidate fragments, validates against Neo4j, composes a final query, and optionally explains it.
+- Persists the last run to `last_run.json` (final Cypher, results/error, token usage, metadata).
+- If Langfuse env vars are set, spans are emitted for each agent step.
+
+## Notes
+
+- The schema used for `main.py` is inlined for convenience; swap it with yours or load dynamically as needed.
+- Inputs to each agent avoid redundant sections (e.g., optional blocks only included when populated) to minimize token usage without losing context.

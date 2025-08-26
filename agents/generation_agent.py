@@ -38,12 +38,14 @@ class GenerationAgent:
             "When the subproblem text mentions a literal value, look it up in the verified field values list "
             "and use the verified form in the Cypher fragment."
         )
-        prompt = (
-            f"Database schema:\n{schema}\n\n"
-            f"Subproblem:\n{subproblem}\n\n"
-            f"Verified field values:\n{json.dumps(pairs)}\n\n"
-            "Return ONLY the Cypher fragment."
-        )
+        # Build the prompt without repeating optional sections
+        prompt_parts = [
+            f"Database schema:\n{schema}",
+            f"Subproblem:\n{subproblem}",
+        ]
+        if pairs:  # include only when non-empty to avoid redundant input
+            prompt_parts.append(f"Verified field values:\n{json.dumps(pairs)}")
+        prompt = "\n\n".join(prompt_parts)
         span = start_span(
             self.langfuse,
             "generate",

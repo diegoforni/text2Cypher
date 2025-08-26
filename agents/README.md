@@ -1,21 +1,15 @@
 # Agents
 
-This package contains the coordinated agents that transform a natural
-language question into an executable Cypher query.
+Coordinated agents transform a natural‑language question into an executable, validated Cypher query.
 
-1. **ExpansionAgent** – clarifies the user request and enriches it with
-   domain context.
-2. **DecompositionAgent** – splits the enriched description into smaller
-   independent tasks.
-3. **MatcherAgent** – extracts literal field/value pairs and resolves them
-   against existing values in the Neo4j database.
-4. **GenerationAgent** – produces a Cypher fragment for each task while
-   respecting the verified values and schema.
-5. **ValidationAgent** – runs the fragment and returns either rows or the
-   error that occurred during execution.
-6. **CompositionAgent** – combines validated fragments into the final
-   query and optionally generates a short explanation.
+1. **ExpansionAgent**: clarifies the request and captures context (no Cypher in output).
+2. **DecompositionAgent**: splits the expanded description into independent sub‑tasks (JSON array of strings).
+3. **GenerationAgent**: produces a Cypher fragment per sub‑task, honoring verified values and schema rules.
+4. **ValidationAgent**: executes fragments against Neo4j and returns either rows or an error.
+5. **CompositionAgent**: concatenates validated fragments into the final query and can produce a short explanation.
+6. **MatcherAgent**: extracts literal values from generated Cypher and resolves them against actual DB values.
 
-Each agent has a single public method representing its responsibility,
-which keeps the pipeline easy to follow and test. The agents share a
-minimal tracing interface so callers can observe intermediate steps.
+Design highlights:
+- Single, focused public method per agent for clarity and testability.
+- Optional Langfuse spans around all steps for traceability.
+- Inputs avoid repeated content: optional sections (e.g., verified values) are only included when present to reduce token usage.

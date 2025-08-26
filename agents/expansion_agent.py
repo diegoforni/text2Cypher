@@ -31,9 +31,7 @@ Provide a JSON object with these keys:
 2. KEY_ENTITIES – which nodes/relationships are relevant?
 3. FILTERS – which conditions or values must be matched?
 4. OUTPUT_FORMAT – how should results be presented?
-5. SUGGESTED_APPROACH – high-level strategy, no Cypher.
-
-Do NOT include any query language in your response.
+5. SUGGESTED_APPROACH – high-level strategy (no Cypher).
 """
         span = start_span(
             self.langfuse,
