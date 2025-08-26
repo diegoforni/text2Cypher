@@ -36,7 +36,12 @@ Provide a JSON object with these keys:
         span = start_span(
             self.langfuse,
             "expand",
-            {"request": request, "schema": schema, "system": system_message, "prompt": prompt},
+            {
+                # Avoid duplicating large strings in telemetry; keep only final prompt
+                "request": request,
+                "system": system_message,
+                "prompt": prompt,
+            },
         )
         response = self.llm.invoke([
             ("system", system_message),

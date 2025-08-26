@@ -21,7 +21,8 @@ class DecompositionAgent:
             "You are a task planner for graph analysis. "
             "Use the provided database schema to reason about the minimal set of "
             "independent natural-language tasks needed to build the final Cypher query. "
-            "Only split the problem when multiple queries must be composed together."
+            "Only split the problem when multiple queries must be composed together. "
+            "Return only a JSON array. Do not use code fences."
         )
         prompt = f"""
 Schema:\n{schema}\n\n"""
@@ -34,7 +35,12 @@ Schema:\n{schema}\n\n"""
         span = start_span(
             self.langfuse,
             "decompose",
-            {"description": description, "schema": schema, "system": system_message, "prompt": prompt},
+            {
+                # Avoid duplicating large strings in telemetry; keep only final prompt
+                "description": description,
+                "system": system_message,
+                "prompt": prompt,
+            },
         )
         response = self.llm.invoke([
             ("system", system_message),
