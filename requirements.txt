@@ -2,5 +2,6 @@ langgraph
 langfuse
 langchain-openai
 langchain-google-genai
+google-generativeai
 neo4j
 python-dotenv
