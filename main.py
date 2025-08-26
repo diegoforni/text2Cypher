@@ -125,31 +125,46 @@ def build_app(llm: object, langfuse: Langfuse | None):
     def generate_node(state: GraphState):
         """Create and validate fragments for each subproblem in parallel."""
 
-        def handle_subproblem(sub: str) -> str | None:
-            local_generator = GenerationAgent(llm, langfuse)
-            pairs = matcher.match(sub, state["schema"])
-            previous_fragment = ""
-            error_message = ""
-            for _ in range(3):
+        subproblems = state["subproblems"]
+        previous = [""] * len(subproblems)
+        errors = [""] * len(subproblems)
+        fragments: List[str | None] = [None] * len(subproblems)
+
+        for _ in range(3):
+            pending = [i for i, f in enumerate(fragments) if f is None]
+            if not pending:
+                break
+
+            def generate(idx: int) -> tuple[int, str]:
+                sub = subproblems[idx]
+                local_generator = GenerationAgent(llm, langfuse)
+                pairs = matcher.match(sub, state["schema"])
                 prompt = sub
-                if previous_fragment:
+                if previous[idx]:
                     prompt += (
-                        f"\nPrevious fragment:\n{previous_fragment}\n"
-                        f"Error: {error_message}\n"
+                        f"\nPrevious fragment:\n{previous[idx]}\n"
+                        f"Error: {errors[idx]}\n"
                         "Please fix and regenerate."
                     )
                 fragment = local_generator.generate(prompt, state["schema"], pairs)
-                ok, result = validator.validate(fragment)
-                if ok:
-                    return fragment
-                previous_fragment = fragment
-                error_message = str(result)
-            return None
+                return idx, fragment
 
-        with ThreadPoolExecutor(max_workers=len(state["subproblems"])) as executor:
-            results = list(executor.map(handle_subproblem, state["subproblems"]))
-        fragments = [r for r in results if r]
-        return {"fragments": fragments}
+            with ThreadPoolExecutor(max_workers=len(pending)) as executor:
+                generated = list(executor.map(generate, pending))
+
+            indices = [i for i, _ in generated]
+            candidates = [frag for _, frag in generated]
+            results = validator.validate_many(candidates)
+
+            for idx, fragment, (ok, result) in zip(indices, candidates, results):
+                if ok:
+                    fragments[idx] = fragment
+                else:
+                    previous[idx] = fragment
+                    errors[idx] = str(result)
+
+        final_fragments = [f for f in fragments if f]
+        return {"fragments": final_fragments}
 
     def compose_node(state: GraphState):
         """Combine validated fragments into a final query."""

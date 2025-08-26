@@ -1,5 +1,6 @@
 """Validation agent that executes Cypher fragments."""
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
+from concurrent.futures import ThreadPoolExecutor
 
 from langfuse import Langfuse
 from neo4j import Driver
@@ -31,3 +32,8 @@ class ValidationAgent:
         except Exception as e:  # pragma: no cover - network errors
             finish_span(span, error=e)
             return False, str(e)
+
+    def validate_many(self, fragments: List[str]) -> List[Tuple[bool, list | str]]:
+        """Validate ``fragments`` concurrently and return list of results."""
+        with ThreadPoolExecutor(max_workers=len(fragments) or 1) as executor:
+            return list(executor.map(self.validate, fragments))
