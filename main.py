@@ -119,7 +119,7 @@ def build_app(llm: object, langfuse: Langfuse | None):
 
     def decompose_node(state: GraphState):
         """Break the expanded request into subproblems."""
-        subproblems = decomposer.decompose(state["expanded"])
+        subproblems = decomposer.decompose(state["expanded"], state["schema"])
         return {"subproblems": subproblems}
 
     def generate_node(state: GraphState):
@@ -138,6 +138,8 @@ def build_app(llm: object, langfuse: Langfuse | None):
             def generate(idx: int) -> tuple[int, str]:
                 sub = subproblems[idx]
                 local_generator = GenerationAgent(llm, langfuse)
+                # Let the LLM decide whether any user-provided values need verification.
+                # The matcher returns an empty list when no literal values are present.
                 pairs = matcher.match(sub, state["schema"])
                 prompt = sub
                 if previous[idx]:
