@@ -1,5 +1,8 @@
 """Console entry point for the multi-agent Cypher system."""
 from typing import List, TypedDict, Any
+import json
+import subprocess
+from datetime import datetime
 
 from langgraph.graph import StateGraph, END
 from langfuse import Langfuse
@@ -20,6 +23,7 @@ from config import (
     LANGFUSE_SECRET_KEY,
     LANGFUSE_PUBLIC_KEY,
     LANGFUSE_HOST,
+    MODEL_PROVIDER,
 )
 
 
@@ -37,9 +41,8 @@ class GraphState(TypedDict, total=False):
     error: str
 
 
-def build_app(langfuse: Langfuse | None):
+def build_app(llm: object, langfuse: Langfuse | None):
     """Create the LangGraph application wiring all agents."""
-    llm = get_llm()
     if llm is None:
         raise RuntimeError(
             "LLM provider or API key not configured. Set MODEL_PROVIDER and API key environment variables."
@@ -125,8 +128,38 @@ def build_app(langfuse: Langfuse | None):
     return workflow.compile()
 
 
+def save_run(question: str, result: GraphState, llm: object) -> None:
+    """Save the question, generated Cypher, and database response to JSON."""
+    metadata = {
+        "time": datetime.utcnow().isoformat() + "Z",
+        "model": getattr(llm, "model_name", getattr(llm, "model", None)),
+        "provider": MODEL_PROVIDER,
+        "commit": None,
+    }
+    try:
+        metadata["commit"] = (
+            subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        )
+    except Exception:
+        pass
+    payload = {
+        "question": question,
+        "cypher": result.get("final_query"),
+        "response": result.get("results"),
+        "error": result.get("error"),
+        "metadata": metadata,
+    }
+    with open("last_run.json", "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
+
+
 def run(question: str, schema: str) -> GraphState:
     """Execute the agent workflow for ``question`` against ``schema``."""
+    llm = get_llm()
+    if llm is None:
+        raise RuntimeError(
+            "LLM provider or API key not configured. Set MODEL_PROVIDER and API key environment variables."
+        )
     langfuse_client = None
     trace = None
     if LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY:
@@ -136,13 +169,15 @@ def run(question: str, schema: str) -> GraphState:
             host=LANGFUSE_HOST,
         )
         trace = start_span(langfuse_client, "run", {"request": question, "schema": schema})
-    app = build_app(trace)
+    app = build_app(llm, trace)
     inputs: GraphState = {"request": question, "schema": schema}
     try:
         result = app.invoke(inputs)
+        save_run(question, result, llm)
         finish_span(trace, {"result": result})
         return result
     except Exception as e:  # pragma: no cover - simple passthrough
+        save_run(question, {"error": str(e)}, llm)
         finish_span(trace, error=e)
         raise
 
