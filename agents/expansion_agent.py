@@ -49,4 +49,3 @@ Do NOT include any query language in your response.
         expanded = response.content if hasattr(response, "content") else str(response)
         finish_span(span, {"expanded": expanded})
         return expanded
-
