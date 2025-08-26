@@ -39,6 +39,11 @@ Return a JSON array like:
 ]
 Use the exact input value.
 """
+        span = start_span(
+            self.langfuse,
+            "match.extract_pairs",
+            {"system": system_message, "prompt": prompt},
+        )
         response = self.llm.invoke([
             ("system", system_message),
             ("user", prompt),
@@ -46,9 +51,18 @@ Use the exact input value.
         text = response.content if hasattr(response, "content") else str(response)
         print("[matcher] LLM response:", text)
         try:
-            pairs = json.loads(text)
-            if not isinstance(pairs, list):  # ensure list
-                raise ValueError
+            cleaned = text.strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.strip("`")
+                if cleaned.lower().startswith("json"):
+                    cleaned = cleaned[4:].strip()
+            start, end = cleaned.find("["), cleaned.rfind("]")
+            if start != -1 and end != -1:
+                cleaned = cleaned[start : end + 1]
+            print("[matcher] cleaned response:", cleaned)
+            pairs = json.loads(cleaned)
+            if not isinstance(pairs, list):
+                raise ValueError("expected list")
             parsed = [
                 {
                     "kind": p.get("kind", ""),
@@ -60,9 +74,11 @@ Use the exact input value.
                 if p.get("value")
             ]
             print("[matcher] extracted pairs:", parsed)
+            finish_span(span, {"response": text, "pairs": parsed})
             return parsed
-        except Exception:
-            print("[matcher] failed to parse pairs")
+        except Exception as e:
+            print("[matcher] failed to parse pairs:", e)
+            finish_span(span, {"response": text}, e)
             return []
 
     def _match_value(self, kind: str, label: str, prop: str, value: str) -> str:
@@ -71,10 +87,12 @@ Use the exact input value.
             return value
 
         def fetch(cypher: str) -> List[str]:
+            print(f"[matcher] running query: {cypher}")
             with self.driver.session(database=NEO4J_DB) as session:
-                values = [r["val"] for r in session.run(cypher)]
-                print(f"[matcher] fetched {values} for {cypher}")
-                return values
+                result = session.run(cypher)
+                values = [r["val"] for r in result]
+            print(f"[matcher] first rows: {values[:5]}")
+            return values
 
         if kind.lower() == "relationship":
             cypher = (
@@ -105,17 +123,21 @@ Use the exact input value.
             for candidate in results
         ]
         best_score, best_val = max(scored, key=lambda x: x[0])
-        print(f"[matcher] best match for '{value}' -> '{best_val}' (score {best_score})")
+        print(
+            f"[matcher] best match for '{value}' -> '{best_val}' (score {best_score})",
+        )
         return best_val if best_score >= 0.6 else value
 
     def match(self, description: str, schema: str) -> List[Dict[str, str]]:
         """Extract and resolve field-value pairs in description."""
-        span = start_span(self.langfuse, "match", {"description": description})
+        span = start_span(self.langfuse, "match", {"description": description, "schema": schema})
         pairs = self._extract_pairs(description, schema)
         print("[matcher] pairs after extraction:", pairs)
         resolved: List[Dict[str, str]] = []
         for pair in pairs:
-            matched = self._match_value(pair["kind"], pair["label"], pair["property"], pair["value"])
+            matched = self._match_value(
+                pair["kind"], pair["label"], pair["property"], pair["value"]
+            )
             resolved.append(
                 {
                     "kind": pair["kind"],
@@ -125,5 +147,5 @@ Use the exact input value.
                 }
             )
         print("[matcher] resolved pairs:", resolved)
-        finish_span(span, {"pairs": resolved})
+        finish_span(span, {"extracted": pairs, "pairs": resolved})
         return resolved

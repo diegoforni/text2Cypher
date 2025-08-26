@@ -30,9 +30,16 @@ Query: {query}
 
 Explain in a short sentence what this query does.
 """
+        span = start_span(
+            self.langfuse,
+            "explain",
+            {"schema": schema, "query": query, "system": system_message, "prompt": prompt},
+        )
         response = self.llm.invoke([
             ("system", system_message),
             ("user", prompt),
         ])
-        return response.content if hasattr(response, "content") else str(response)
+        explanation = response.content if hasattr(response, "content") else str(response)
+        finish_span(span, {"explanation": explanation})
+        return explanation
 

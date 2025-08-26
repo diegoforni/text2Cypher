@@ -21,9 +21,11 @@ class ValidationAgent:
         try:
             if not fragment or not fragment.strip():
                 raise ValueError("Empty query")
+            print(f"[validation] executing: {fragment}")
             with self.driver.session(database=NEO4J_DB) as session:
                 result = session.run(fragment)
                 rows = [r.data() for r in result]
+            print(f"[validation] first rows: {rows[:5]}")
             finish_span(span, {"rows": rows})
             return True, rows
         except Exception as e:  # pragma: no cover - network errors

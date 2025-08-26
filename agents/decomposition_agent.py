@@ -15,7 +15,6 @@ class DecompositionAgent:
         self.langfuse = langfuse
 
     def decompose(self, description: str) -> List[str]:
-        span = start_span(self.langfuse, "decompose", {"description": description})
         system_message = (
             "You are a task planner for graph analysis. "
             "Break problems into natural-language tasks without writing any Cypher."
@@ -28,6 +27,11 @@ Analysis: {description}
 
 Return a JSON array of task strings using the original values verbatim.
 """
+        span = start_span(
+            self.langfuse,
+            "decompose",
+            {"description": description, "system": system_message, "prompt": prompt},
+        )
         response = self.llm.invoke([
             ("system", system_message),
             ("user", prompt),
@@ -37,6 +41,6 @@ Return a JSON array of task strings using the original values verbatim.
             subproblems = [p.strip() for p in eval(text) if p.strip()]
         except Exception:
             subproblems = [text]
-        finish_span(span, {"subproblems": subproblems})
+        finish_span(span, {"response": text, "subproblems": subproblems})
         return subproblems
 
