@@ -25,6 +25,7 @@ from config import (
     LANGFUSE_PUBLIC_KEY,
     LANGFUSE_HOST,
     MODEL_PROVIDER,
+    GEMINI_API_KEY,
 )
 
 
@@ -40,6 +41,37 @@ class TokenCountingLLM:
         response = self._llm.invoke(*args, **kwargs)
         metadata = getattr(response, "response_metadata", {}) or {}
         usage = metadata.get("token_usage") or metadata.get("usage_metadata") or {}
+
+        if not usage and MODEL_PROVIDER == "gemini":
+            try:
+                import google.generativeai as genai
+
+                if GEMINI_API_KEY:
+                    genai.configure(api_key=GEMINI_API_KEY)
+                model_name = getattr(self._llm, "model", "gemini-1.5-pro")
+                model = genai.GenerativeModel(model_name)
+
+                prompt_data = args[0] if args else kwargs.get("messages") or kwargs.get("prompt") or ""
+                if isinstance(prompt_data, list):
+                    def _to_text(m):
+                        if isinstance(m, tuple) and len(m) == 2:
+                            return str(m[1])
+                        if hasattr(m, "content"):
+                            return str(m.content)
+                        return str(m)
+
+                    prompt_text = "\n".join(_to_text(m) for m in prompt_data)
+                else:
+                    prompt_text = str(prompt_data)
+
+                output_text = getattr(response, "content", str(response))
+
+                self.input_tokens += model.count_tokens(prompt_text).total_tokens
+                self.output_tokens += model.count_tokens(output_text).total_tokens
+                return response
+            except Exception:
+                usage = {}
+
         self.input_tokens += usage.get("prompt_tokens") or usage.get("prompt_token_count") or 0
         self.output_tokens += (
             usage.get("completion_tokens")
