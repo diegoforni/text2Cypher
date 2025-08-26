@@ -3,6 +3,7 @@ from typing import List, TypedDict, Any
 import json
 import subprocess
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 
 from langgraph.graph import StateGraph, END
 from langfuse import Langfuse
@@ -52,7 +53,6 @@ def build_app(llm: object, langfuse: Langfuse | None):
     expander = ExpansionAgent(llm, langfuse)
     decomposer = DecompositionAgent(llm, langfuse)
     matcher = MatcherAgent(llm, driver, langfuse)
-    generator = GenerationAgent(llm, langfuse)
     validator = ValidationAgent(driver, langfuse)
     composer = CompositionAgent(llm, langfuse)
 
@@ -67,13 +67,14 @@ def build_app(llm: object, langfuse: Langfuse | None):
         return {"subproblems": subproblems}
 
     def generate_node(state: GraphState):
-        """Create and validate fragments for each subproblem."""
-        fragments: List[str] = []
-        for sub in state["subproblems"]:
+        """Create and validate fragments for each subproblem in parallel."""
+
+        def handle_subproblem(sub: str) -> str | None:
+            local_generator = GenerationAgent(llm, langfuse)
             pairs = matcher.match(sub, state["schema"])
             previous_fragment = ""
             error_message = ""
-            for _ in range(3):  # initial + 2 retries
+            for _ in range(3):
                 prompt = sub
                 if previous_fragment:
                     prompt += (
@@ -81,13 +82,17 @@ def build_app(llm: object, langfuse: Langfuse | None):
                         f"Error: {error_message}\n"
                         "Please fix and regenerate."
                     )
-                fragment = generator.generate(prompt, state["schema"], pairs)
+                fragment = local_generator.generate(prompt, state["schema"], pairs)
                 ok, result = validator.validate(fragment)
                 if ok:
-                    fragments.append(fragment)
-                    break
+                    return fragment
                 previous_fragment = fragment
                 error_message = str(result)
+            return None
+
+        with ThreadPoolExecutor(max_workers=len(state["subproblems"])) as executor:
+            results = list(executor.map(handle_subproblem, state["subproblems"]))
+        fragments = [r for r in results if r]
         return {"fragments": fragments}
 
     def compose_node(state: GraphState):
