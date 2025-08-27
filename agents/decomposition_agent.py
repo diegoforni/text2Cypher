@@ -47,6 +47,12 @@ Schema:\n{schema}\n\n"""
             ("user", prompt),
         ])
         text = response.content if hasattr(response, "content") else str(response)
+        # Debug: show raw model output (trimmed)
+        try:
+            preview = text if len(text) < 1000 else text[:1000] + "... [truncated]"
+            print("[decompose] LLM response:", preview)
+        except Exception:
+            pass
 
         # Robust parsing: strip code fences, then try to extract the JSON array
         cleaned = text.strip()
@@ -56,6 +62,11 @@ Schema:\n{schema}\n\n"""
         # Some models wrap the array in prose; extract the outermost brackets if present
         start, end = cleaned.find("["), cleaned.rfind("]")
         candidate = cleaned[start : end + 1] if start != -1 and end != -1 else cleaned
+        try:
+            preview = candidate if len(candidate) < 1000 else candidate[:1000] + "... [truncated]"
+            print("[decompose] candidate JSON text:", preview)
+        except Exception:
+            pass
 
         subproblems: List[str]
         try:
@@ -81,6 +92,11 @@ Schema:\n{schema}\n\n"""
             or all(INSTRUCTION_PHRASE.lower() in s.lower() for s in subproblems)
         ):
             subproblems = [description]
+
+        try:
+            print("[decompose] parsed subproblems:", subproblems)
+        except Exception:
+            pass
 
         finish_span(span, {"response": text, "subproblems": subproblems})
         return subproblems
