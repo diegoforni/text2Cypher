@@ -244,17 +244,31 @@ def build_app(llm: object, langfuse: Langfuse | None):
         return {"final_query": query}
 
     def final_validate_node(state: GraphState):
-        """Run a final validation pass over the composed query.
+        """Run a final validation pass over the composed query with retries.
 
-        If the query was already validated in single-task mode and results are present,
-        skip re-validating to avoid executing the same Cypher twice.
+        If single-task mode already produced rows, skip re-validating. Otherwise,
+        attempt to validate the composed query; on failure, invoke the composer to
+        refine the query using the database error and retry up to 2 more times.
         """
         if state.get("results") is not None:
             return {}
-        ok, res = validator.validate(state["final_query"])
-        if ok:
-            return {"results": res}
-        return {"error": res}
+        query = state["final_query"]
+        fragments = state.get("fragments", [])
+        last_error: str | None = None
+        for _ in range(3):
+            ok, res = validator.validate(query)
+            if ok:
+                # Succeed with potentially refined query
+                return {"results": res, "final_query": query}
+            last_error = str(res)
+            # Try refining only if there are fragments and we have an error
+            try:
+                query = composer.refine(fragments, query, last_error, state["schema"]) if fragments else query
+            except Exception:
+                # If refine fails (e.g., LLM issues), break and surface original error
+                break
+        # If we reach here, we failed all attempts
+        return {"error": last_error or "Validation failed"}
 
     def explain_node(state: GraphState):
         """Generate a human-readable explanation of the final query."""

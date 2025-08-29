@@ -99,14 +99,31 @@ Use the exact value from the query.
         if kind.lower() == "relationship":
             cypher = (
                 f"MATCH ()-[r:`{label}`]-() WHERE r.{prop} IS NOT NULL "
-                f"RETURN DISTINCT toString(r.{prop}) AS val"
+                f"RETURN DISTINCT r.{prop} AS val"
             )
         else:
             cypher = (
                 f"MATCH (n:`{label}`) WHERE n.{prop} IS NOT NULL "
-                f"RETURN DISTINCT toString(n.{prop}) AS val"
+                f"RETURN DISTINCT n.{prop} AS val"
             )
         results = fetch(cypher)
+
+        # Flatten list-valued properties into individual candidates and
+        # normalize everything to strings for matching.
+        flat: List[str] = []
+        for v in results:
+            if isinstance(v, list):
+                flat.extend([str(x) for x in v])
+            else:
+                flat.append(str(v))
+        # Deduplicate while preserving order
+        seen = set()
+        deduped: List[str] = []
+        for s in flat:
+            if s not in seen:
+                seen.add(s)
+                deduped.append(s)
+        results = deduped
 
         if not results:
             print(f"[matcher] no candidates found for {label}.{prop}")
