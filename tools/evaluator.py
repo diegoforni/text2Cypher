@@ -105,6 +105,32 @@ def main() -> int:
             except Exception:
                 pass
 
+        # Assemble per-agent trace for downstream analysis
+        agents: Dict[str, Any] = {
+            "expansion": {
+                "expanded": state.get("expanded"),
+                "needs_decomposition": state.get("needs_decomposition"),
+            },
+            "decomposition": {
+                "subproblems": state.get("subproblems"),
+            },
+            "generation": {
+                "fragments": state.get("fragments"),
+                "trace": state.get("generation_trace"),
+            },
+            "composition": {
+                "final_query": state.get("final_query"),
+            },
+            "final_validation": {
+                "trace": state.get("final_validate_trace"),
+                "error": state.get("error"),
+                "results_preview": (state.get("results")[:3] if isinstance(state.get("results"), list) else None),
+            },
+            "explanation": {
+                "text": state.get("explanation"),
+            },
+        }
+
         result_row: Dict[str, Any] = {
             "index": i,
             "category": category,
@@ -113,6 +139,7 @@ def main() -> int:
             "agent_cypher": state.get("final_query"),
             "response": state.get("results"),
             "error": state.get("error"),
+            "agents": agents,
             "token_usage": token_usage,
             "duration_seconds": round(duration, 3),
             "started_at": t0_wall.isoformat(),
@@ -141,8 +168,8 @@ def main() -> int:
 
         # Sleep for Gemini to respect rate limits
         if MODEL_PROVIDER.lower() == "gemini" and i < len(prompts):
-            print("Model provider is Gemini. Sleeping 60 seconds before next prompt...")
-            time.sleep(60)
+            print("Model provider is Gemini. Sleeping 90 seconds before next prompt...")
+            time.sleep(90)
 
     ended = datetime.now(timezone.utc)
 

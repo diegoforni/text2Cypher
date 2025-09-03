@@ -93,10 +93,12 @@ class GraphState(TypedDict, total=False):
     needs_decomposition: bool
     subproblems: List[str]
     fragments: List[str]
+    generation_trace: List[dict]
     final_query: str
     results: Any
     explanation: str
     error: str
+    final_validate_trace: List[dict]
 
 
 def build_app(llm: object, langfuse: Langfuse | None):
@@ -172,6 +174,9 @@ def build_app(llm: object, langfuse: Langfuse | None):
         errors = [""] * len(subproblems)
         fragments: List[str | None] = [None] * len(subproblems)
         verified_pairs: List[List[dict]] = [[] for _ in subproblems]
+        gen_trace: List[dict] = [
+            {"subproblem": sub, "attempts": []} for sub in subproblems
+        ]
         # If we are in single-task mode, capture the validated rows to avoid re-validation
         single_mode = len(subproblems) == 1
         single_rows: Any | None = None
@@ -214,6 +219,14 @@ def build_app(llm: object, langfuse: Langfuse | None):
             for idx, fragment, pairs, (ok, result) in zip(
                 indices, candidates, pair_lists, results
             ):
+                # Record attempt trace
+                gen_trace[idx]["attempts"].append({
+                    "fragment": fragment,
+                    "matched_pairs": pairs,
+                    "ok": bool(ok),
+                    "error": None if ok else str(result),
+                    "rows_preview": result[:3] if ok and isinstance(result, list) else None,
+                })
                 if ok:
                     fragments[idx] = fragment
                     if single_mode:
@@ -225,7 +238,7 @@ def build_app(llm: object, langfuse: Langfuse | None):
                         verified_pairs[idx] = pairs
 
         final_fragments = [f for f in fragments if f]
-        out: GraphState = {"fragments": final_fragments}
+        out: GraphState = {"fragments": final_fragments, "generation_trace": gen_trace}
         # Optimization: if there is only one validated fragment, we already have its rows;
         # surface them now so we can skip the final validation pass.
         if single_mode and len(final_fragments) == 1 and single_rows is not None:
@@ -255,11 +268,18 @@ def build_app(llm: object, langfuse: Langfuse | None):
         query = state["final_query"]
         fragments = state.get("fragments", [])
         last_error: str | None = None
+        fv_trace: List[dict] = []
         for _ in range(3):
             ok, res = validator.validate(query)
+            fv_trace.append({
+                "query": query,
+                "ok": bool(ok),
+                "error": None if ok else str(res),
+                "rows_preview": res[:3] if ok and isinstance(res, list) else None,
+            })
             if ok:
                 # Succeed with potentially refined query
-                return {"results": res, "final_query": query}
+                return {"results": res, "final_query": query, "final_validate_trace": fv_trace}
             last_error = str(res)
             # Try refining only if there are fragments and we have an error
             try:
@@ -268,7 +288,7 @@ def build_app(llm: object, langfuse: Langfuse | None):
                 # If refine fails (e.g., LLM issues), break and surface original error
                 break
         # If we reach here, we failed all attempts
-        return {"error": last_error or "Validation failed"}
+        return {"error": last_error or "Validation failed", "final_validate_trace": fv_trace}
 
     def explain_node(state: GraphState):
         """Generate a human-readable explanation of the final query."""
@@ -324,11 +344,33 @@ def save_run(question: str, result: GraphState, llm: object) -> None:
         "output": getattr(llm, "output_tokens", 0),
     }
     usage["total"] = usage["input"] + usage["output"]
+    agents = {
+        "expansion": {
+            "expanded": result.get("expanded"),
+            "needs_decomposition": result.get("needs_decomposition"),
+        },
+        "decomposition": {
+            "subproblems": result.get("subproblems"),
+        },
+        "generation": {
+            "fragments": result.get("fragments"),
+            "trace": result.get("generation_trace"),
+        },
+        "final_validation": {
+            "trace": result.get("final_validate_trace"),
+            "error": result.get("error"),
+            "results_preview": (result.get("results")[:3] if isinstance(result.get("results"), list) else None),
+        },
+        "explanation": {
+            "text": result.get("explanation"),
+        },
+    }
     payload = {
         "question": question,
         "cypher": result.get("final_query"),
         "response": result.get("results"),
         "error": result.get("error"),
+        "agents": agents,
         "token_usage": usage,
         "metadata": metadata,
     }

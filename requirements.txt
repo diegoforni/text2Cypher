@@ -5,3 +5,4 @@ langchain-google-genai
 google-generativeai
 neo4j
 python-dotenv
+requests
