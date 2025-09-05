@@ -1,5 +1,5 @@
 """Expansion agent that clarifies and enriches user requests."""
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 import json
 import re
 
@@ -51,10 +51,29 @@ Provide a single JSON object with these keys (no code fences):
             ("system", system_message),
             ("user", prompt),
         ])
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = response.content if hasattr(response, "content") else response
+
+        def _coerce_text(value: Any) -> str:
+            if isinstance(value, str):
+                return value
+            if isinstance(value, list):
+                parts: list[str] = []
+                for v in value:
+                    if isinstance(v, str):
+                        parts.append(v)
+                    elif isinstance(v, dict):
+                        t = v.get("text") or v.get("content")
+                        if isinstance(t, str):
+                            parts.append(t)
+                    else:
+                        t = getattr(v, "text", None)
+                        if isinstance(t, str):
+                            parts.append(t)
+                return "".join(parts) if parts else str(value)
+            return str(value)
 
         # Robustly parse JSON while keeping the original text as expanded output
-        expanded_text = raw.strip()
+        expanded_text = _coerce_text(raw).strip()
         # Strip code fences if any
         expanded_text = re.sub(r"^```[a-zA-Z]*\n", "", expanded_text)
         expanded_text = re.sub(r"\n```$", "", expanded_text).strip()

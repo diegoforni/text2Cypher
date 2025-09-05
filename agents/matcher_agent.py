@@ -1,7 +1,7 @@
 """Matcher agent that resolves literal values against the database."""
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import json
 from concurrent.futures import ThreadPoolExecutor
 
@@ -50,7 +50,28 @@ Use the exact value from the query.
             ("system", system_message),
             ("user", prompt),
         ])
-        text = response.content if hasattr(response, "content") else str(response)
+        raw = response.content if hasattr(response, "content") else response
+
+        def _coerce_text(value: Any) -> str:
+            if isinstance(value, str):
+                return value
+            if isinstance(value, list):
+                parts: list[str] = []
+                for v in value:
+                    if isinstance(v, str):
+                        parts.append(v)
+                    elif isinstance(v, dict):
+                        t = v.get("text") or v.get("content")
+                        if isinstance(t, str):
+                            parts.append(t)
+                    else:
+                        t = getattr(v, "text", None)
+                        if isinstance(t, str):
+                            parts.append(t)
+                return "".join(parts) if parts else str(value)
+            return str(value)
+
+        text = _coerce_text(raw)
         print("[matcher] LLM response:", text)
         try:
             cleaned = text.strip()

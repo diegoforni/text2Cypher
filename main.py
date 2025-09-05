@@ -45,9 +45,10 @@ class TokenCountingLLM:
         if not usage and MODEL_PROVIDER == "gemini":
             try:
                 import google.generativeai as genai
-
-                if GEMINI_API_KEY:
-                    genai.configure(api_key=GEMINI_API_KEY)
+                # Prefer the actual key used by the underlying LLM (if provided)
+                active_key = getattr(self._llm, "last_api_key", None) or GEMINI_API_KEY
+                if active_key:
+                    genai.configure(api_key=active_key)
                 model_name = getattr(self._llm, "model", "gemini-1.5-pro")
                 model = genai.GenerativeModel(model_name)
 

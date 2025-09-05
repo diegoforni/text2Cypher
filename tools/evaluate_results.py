@@ -133,7 +133,26 @@ Respond with a single JSON object with keys:
 """
     try:
         resp = llm.invoke([("system", system), ("user", user)])
-        content = getattr(resp, "content", str(resp)).strip()
+        raw = getattr(resp, "content", resp)
+        def _coerce_text(value: Any) -> str:
+            if isinstance(value, str):
+                return value
+            if isinstance(value, list):
+                parts: List[str] = []
+                for v in value:
+                    if isinstance(v, str):
+                        parts.append(v)
+                    elif isinstance(v, dict):
+                        t = v.get("text") or v.get("content")
+                        if isinstance(t, str):
+                            parts.append(t)
+                    else:
+                        t = getattr(v, "text", None)
+                        if isinstance(t, str):
+                            parts.append(t)
+                return "".join(parts) if parts else str(value)
+            return str(value)
+        content = _coerce_text(raw).strip()
         # Attempt to extract JSON object
         start, end = content.find("{"), content.rfind("}")
         if start != -1 and end != -1 and end > start:

@@ -1,5 +1,5 @@
 """Decomposition agent that splits expanded descriptions into subproblems."""
-from typing import List, Optional
+from typing import List, Optional, Any
 import json
 import re
 
@@ -46,7 +46,28 @@ Schema:\n{schema}\n\n"""
             ("system", system_message),
             ("user", prompt),
         ])
-        text = response.content if hasattr(response, "content") else str(response)
+        raw = response.content if hasattr(response, "content") else response
+
+        def _coerce_text(value: Any) -> str:
+            if isinstance(value, str):
+                return value
+            if isinstance(value, list):
+                parts: list[str] = []
+                for v in value:
+                    if isinstance(v, str):
+                        parts.append(v)
+                    elif isinstance(v, dict):
+                        t = v.get("text") or v.get("content")
+                        if isinstance(t, str):
+                            parts.append(t)
+                    else:
+                        t = getattr(v, "text", None)
+                        if isinstance(t, str):
+                            parts.append(t)
+                return "".join(parts) if parts else str(value)
+            return str(value)
+
+        text = _coerce_text(raw)
         # Debug: show raw model output (trimmed)
         try:
             preview = text if len(text) < 1000 else text[:1000] + "... [truncated]"

@@ -1,5 +1,5 @@
 """Composition agent that assembles validated fragments into a final query."""
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from langchain_core.language_models import BaseChatModel
 from langfuse import Langfuse
@@ -56,7 +56,28 @@ Produce a corrected single Cypher query that resolves the error. No commentary.
             ("system", system_message),
             ("user", prompt),
         ])
-        candidate = response.content if hasattr(response, "content") else str(response)
+        raw = response.content if hasattr(response, "content") else response
+
+        def _coerce_text(value: Any) -> str:
+            if isinstance(value, str):
+                return value
+            if isinstance(value, list):
+                parts: list[str] = []
+                for v in value:
+                    if isinstance(v, str):
+                        parts.append(v)
+                    elif isinstance(v, dict):
+                        t = v.get("text") or v.get("content")
+                        if isinstance(t, str):
+                            parts.append(t)
+                    else:
+                        t = getattr(v, "text", None)
+                        if isinstance(t, str):
+                            parts.append(t)
+                return "".join(parts) if parts else str(value)
+            return str(value)
+
+        candidate = _coerce_text(raw)
         cleaned = candidate.strip()
         if cleaned.startswith("```") and cleaned.endswith("```"):
             cleaned = cleaned.strip("`")
@@ -89,6 +110,27 @@ Explain in a short sentence what this query does.
             ("system", system_message),
             ("user", prompt),
         ])
-        explanation = response.content if hasattr(response, "content") else str(response)
+        raw = response.content if hasattr(response, "content") else response
+
+        def _coerce_text2(value: Any) -> str:
+            if isinstance(value, str):
+                return value
+            if isinstance(value, list):
+                parts: list[str] = []
+                for v in value:
+                    if isinstance(v, str):
+                        parts.append(v)
+                    elif isinstance(v, dict):
+                        t = v.get("text") or v.get("content")
+                        if isinstance(t, str):
+                            parts.append(t)
+                    else:
+                        t = getattr(v, "text", None)
+                        if isinstance(t, str):
+                            parts.append(t)
+                return "".join(parts) if parts else str(value)
+            return str(value)
+
+        explanation = _coerce_text2(raw)
         finish_span(span, {"explanation": explanation})
         return explanation

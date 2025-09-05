@@ -15,6 +15,7 @@ Multi‑agent pipeline that converts natural‑language questions into validated
 - Create a `.env` (see `.env.example`) with:
   - `MODEL_PROVIDER`: `openai` or `gemini`
   - `OPENAI_API_KEY` or `GEMINI_API_KEY`
+  - Optional: `GEMINI_API_KEYS` for multiple Gemini keys (round‑robin, no back‑to‑back reuse)
   - `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, `NEO4J_DB`
   - Optional Langfuse: `LANGFUSE_SECRET_KEY`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_HOST`
 

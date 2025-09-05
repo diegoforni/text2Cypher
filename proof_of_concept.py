@@ -64,7 +64,8 @@ class CypherAgent:
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": 800,
-            "temperature": 0
+            "temperature": 0,
+            "reasoning": {"effort": "minimal"},
         }
         
         try:
