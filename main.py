@@ -40,7 +40,14 @@ class TokenCountingLLM:
     def invoke(self, *args, **kwargs):
         response = self._llm.invoke(*args, **kwargs)
         metadata = getattr(response, "response_metadata", {}) or {}
-        usage = metadata.get("token_usage") or metadata.get("usage_metadata") or {}
+        # LangChain providers vary: OpenAI uses usage_metadata {input_tokens, output_tokens},
+        # some use token_usage {prompt_tokens, completion_tokens}, Gemini can differ.
+        usage = metadata.get("token_usage") or metadata.get("usage") or {}
+        if not usage:
+            # LangChain also exposes a top-level usage_metadata on the message
+            top_level_usage = getattr(response, "usage_metadata", None) or getattr(response, "usage", None)
+            if isinstance(top_level_usage, dict):
+                usage = top_level_usage
 
         if not usage and MODEL_PROVIDER == "gemini":
             try:
@@ -73,12 +80,28 @@ class TokenCountingLLM:
             except Exception:
                 usage = {}
 
-        self.input_tokens += usage.get("prompt_tokens") or usage.get("prompt_token_count") or 0
-        self.output_tokens += (
-            usage.get("completion_tokens")
-            or usage.get("candidates_token_count")
+        # Collect tokens across possible key names
+        in_tok = (
+            usage.get("prompt_tokens")
+            or usage.get("prompt_token_count")
+            or usage.get("input_tokens")
             or 0
         )
+        out_tok = (
+            usage.get("completion_tokens")
+            or usage.get("candidates_token_count")
+            or usage.get("output_tokens")
+            or 0
+        )
+        # As a last resort, if only total_tokens is present, attribute them to input
+        if not in_tok and not out_tok:
+            total_only = usage.get("total_tokens")
+            if isinstance(total_only, (int, float)):
+                in_tok = int(total_only)
+                out_tok = 0
+
+        self.input_tokens += int(in_tok)
+        self.output_tokens += int(out_tok)
         return response
 
     def __getattr__(self, name: str):
