@@ -204,29 +204,114 @@ def build_app(
 
         import re
 
-        def _needs_matching(fragment: str) -> bool:
-            """Heuristic to decide if matcher is needed.
+        _IDENT = r"(?:`[^`]+`|[A-Za-z_][A-Za-z0-9_`]*)"
+        _EXACT_VALUE_PATTERN = re.compile(
+            rf"""
+            (?P<alias>{_IDENT})\.(?P<prop>{_IDENT})\s*=\s*
+            (
+                (?P<quote>['\"])(?P<literal>[^'\"$]+)(?P=quote)
+                |
+                (?P<number>-?\d+(?:\.\d+)?)
+            )
+            """,
+            flags=re.IGNORECASE | re.VERBOSE,
+        )
+        _RELATIONSHIP_MAP_PATTERN = re.compile(
+            r"\[(?P<alias>{id})?\s*:(?P<label>{id})\s*\{{(?P<body>[^\}]*)\}\]".replace("{id}", _IDENT),
+            flags=re.IGNORECASE,
+        )
+        _NODE_MAP_PATTERN = re.compile(
+            r"\((?P<alias>{id})?\s*:(?P<label>{id})\s*\{{(?P<body>[^\}]*)\}\)".replace("{id}", _IDENT),
+            flags=re.IGNORECASE,
+        )
+        _MAP_ENTRY_PATTERN = re.compile(
+            r"(?P<prop>{id})\s*:\s*(?P<quote>['\"])(?P<literal>[^'\"]+)(?P=quote)".replace("{id}", _IDENT),
+            flags=re.IGNORECASE,
+        )
 
-            We look for quoted string literals that are typically used in
-            property comparisons (e.g., WHERE n.name = "Alice", IN ["US"],
-            CONTAINS 'http', STARTS WITH 'foo', ENDS WITH 'bar').
-            Numbers (e.g., LIMIT 10) are ignored by focusing on quotes.
-            """
+        def _normalize_identifier(value: str) -> str:
+            return value.replace("`", "").lower()
+
+        def _find_exact_value_literals(fragment: str) -> list[dict[str, object]]:
             if not fragment:
-                return False
-            # Fast check: any quoted string present at all?
-            if not re.search(r"['\"]([^'\"]+)['\"]", fragment):
-                return False
-            # Stronger signal: quoted string near common comparison operators/keywords
-            patterns = [
-                r"\bWHERE\b[\s\S]{0,200}?['\"]([^'\"]+)['\"]",
-                r"=\s*['\"]([^'\"]+)['\"]",
-                r"\bIN\b\s*\[[^\]]*['\"][^\]]*\]",
-                r"\bCONTAINS\b\s*['\"]([^'\"]+)['\"]",
-                r"\bSTARTS\s+WITH\b\s*['\"]([^'\"]+)['\"]",
-                r"\bENDS\s+WITH\b\s*['\"]([^'\"]+)['\"]",
-            ]
-            return any(re.search(p, fragment, flags=re.IGNORECASE) for p in patterns)
+                return []
+            matches: list[dict[str, object]] = []
+            for m in _EXACT_VALUE_PATTERN.finditer(fragment):
+                literal = m.group("literal")
+                number = m.group("number")
+                value = literal if literal is not None else number
+                if value is None:
+                    continue
+                alias = m.group("alias")
+                prop = m.group("prop")
+                if literal is not None:
+                    start, end = m.start("literal"), m.end("literal")
+                    quote = m.group("quote") or ""
+                else:
+                    start, end = m.start("number"), m.end("number")
+                    quote = ""
+                matches.append(
+                    {
+                        "alias": alias,
+                        "alias_norm": _normalize_identifier(alias),
+                        "property": prop,
+                        "property_norm": _normalize_identifier(prop),
+                        "literal": value,
+                        "quote": quote,
+                        "start": start,
+                        "end": end,
+                        "label": "",
+                        "label_norm": "",
+                        "kind": "comparison",
+                    }
+                )
+
+            def _collect_map_matches(pattern: re.Pattern, kind: str) -> None:
+                for match in pattern.finditer(fragment):
+                    body = match.group("body") or ""
+                    if not body:
+                        continue
+                    alias = match.group("alias") or ""
+                    label = match.group("label") or ""
+                    base_norm = _normalize_identifier(alias) or _normalize_identifier(label)
+                    label_norm = _normalize_identifier(label)
+                    body_start = match.start("body")
+                    for entry in _MAP_ENTRY_PATTERN.finditer(body):
+                        literal = entry.group("literal")
+                        if literal is None:
+                            continue
+                        quote = entry.group("quote") or ""
+                        prop = entry.group("prop") or ""
+                        start = body_start + entry.start("literal")
+                        end = body_start + entry.end("literal")
+                        matches.append(
+                            {
+                                "alias": alias,
+                                "alias_norm": base_norm,
+                                "label": label,
+                                "label_norm": label_norm,
+                                "property": prop,
+                                "property_norm": _normalize_identifier(prop),
+                                "literal": literal,
+                                "quote": quote,
+                                "start": start,
+                                "end": end,
+                                "kind": kind,
+                            }
+                        )
+
+            _collect_map_matches(_NODE_MAP_PATTERN, "node")
+            _collect_map_matches(_RELATIONSHIP_MAP_PATTERN, "relationship")
+            return matches
+
+        def _apply_exact_replacements(fragment: str, replacements: list[tuple[dict[str, object], str]]) -> str:
+            updated = fragment
+            # Replace from the end to keep earlier indices valid
+            for match_info, new_value in sorted(replacements, key=lambda item: int(item[0]["start"]), reverse=True):
+                start = int(match_info["start"])
+                end = int(match_info["end"])
+                updated = updated[:start] + new_value + updated[end:]
+            return updated
 
         subproblems = state.get("subproblems") or [state.get("expanded") or state.get("request", "")]
         emit("generate", "start", {"subproblems": subproblems})
@@ -260,12 +345,36 @@ def build_app(
                     prompt, state["schema"], pairs=verified_pairs[idx]
                 )
                 # After generation, verify any literal values only if clearly needed
+                literal_matches = _find_exact_value_literals(fragment)
                 pairs: List[dict] = []
-                if _needs_matching(fragment):
-                    pairs = matcher.match(fragment, state["schema"])
-                    for p in pairs:
-                        # Preserve the fragment structure; replace only exact literal
-                        fragment = fragment.replace(p["original"], p["value"])
+                if literal_matches:
+                    matched_pairs = matcher.match(fragment, state["schema"])
+                    replacements: list[tuple[dict[str, object], str]] = []
+                    selected_pairs: List[dict] = []
+
+                    for literal_match in literal_matches:
+                        for pair in matched_pairs:
+                            prop_norm = _normalize_identifier(pair.get("property", ""))
+                            label_norm = _normalize_identifier(pair.get("label", ""))
+                            pair_original = str(pair.get("original", ""))
+                            literal_value = str(literal_match["literal"])
+                            labels_match = True
+                            match_label_norm = str(literal_match.get("label_norm", ""))
+                            if match_label_norm and label_norm:
+                                labels_match = label_norm == match_label_norm
+                            if (
+                                prop_norm == literal_match["property_norm"]
+                                and pair_original.strip() == literal_value.strip()
+                                and labels_match
+                            ):
+                                replacements.append((literal_match, str(pair.get("value", literal_value))))
+                                if pair not in selected_pairs:
+                                    selected_pairs.append(pair)
+                                break
+
+                    if replacements:
+                        fragment = _apply_exact_replacements(fragment, replacements)
+                        pairs = selected_pairs
                 return idx, fragment, pairs
 
             with ThreadPoolExecutor(max_workers=len(pending)) as executor:

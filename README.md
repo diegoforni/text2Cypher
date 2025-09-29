@@ -35,8 +35,10 @@ What happens:
 - Expands and decomposes the request, generates candidate fragments, validates against Neo4j, composes a final query, and optionally explains it.
 - Persists the last run to `last_run.json` (final Cypher, results/error, token usage, metadata).
 - If Langfuse env vars are set, spans are emitted for each agent step.
+- Detects equality comparisons (including pattern maps like `[:REL {prop: "value"}]`) and, when present, resolves those literals through the `MatcherAgent` so they align with canonical database values before validation.
 
 ## Notes
 
 - The schema used for `main.py` is inlined for convenience; swap it with yours or load dynamically as needed.
 - Inputs to each agent avoid redundant sections (e.g., optional blocks only included when populated) to minimize token usage without losing context.
+- Matcher lookups only run for explicit equality checks against literal values. Other predicates (e.g., `CONTAINS`, numeric ranges) skip the matcher to reduce overhead.
