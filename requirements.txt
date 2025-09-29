@@ -6,3 +6,5 @@ google-generativeai
 neo4j
 python-dotenv
 requests
+flask
+six

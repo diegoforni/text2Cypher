@@ -121,7 +121,7 @@ class _ChatOllamaCompat:
         # Expose common attributes used elsewhere
         self.model_name = model
 
-    def invoke(self, messages: List[Tuple[str, str]] | Any) -> _OllamaResponse:
+    def invoke(self, messages: Any) -> _OllamaResponse:
         # Normalize messages into list of {role, content}
         payload_msgs = []
         if isinstance(messages, list):
@@ -190,7 +190,7 @@ class _RoundRobinGeminiLLM:
             self._last_key = candidate
             return candidate
 
-    def invoke(self, messages: List[Tuple[str, str]] | Any):
+    def invoke(self, messages: Any):
         if not ChatGoogleGenerativeAI:
             raise RuntimeError("langchain-google-genai is not installed")
         key = self._next_key()

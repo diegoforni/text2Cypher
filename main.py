@@ -1,9 +1,13 @@
 """Console entry point for the multi-agent Cypher system."""
-from typing import List, TypedDict, Any
+from typing import Any, Callable, List, Optional, TypedDict
 import json
+import logging
+import os
 import subprocess
+import tempfile
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 from langgraph.graph import StateGraph, END
 from langfuse import Langfuse
@@ -27,6 +31,9 @@ from config import (
     MODEL_PROVIDER,
     GEMINI_API_KEY,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class TokenCountingLLM:
@@ -125,7 +132,11 @@ class GraphState(TypedDict, total=False):
     final_validate_trace: List[dict]
 
 
-def build_app(llm: object, langfuse: Langfuse | None):
+def build_app(
+    llm: object,
+    langfuse: Langfuse | None,
+    progress_callback: Optional[Callable[[str, str, Optional[dict]], None]] = None,
+):
     """Create the LangGraph application wiring all agents."""
     if llm is None:
         raise RuntimeError(
@@ -139,6 +150,14 @@ def build_app(llm: object, langfuse: Langfuse | None):
     validator = ValidationAgent(driver, langfuse)
     composer = CompositionAgent(llm, langfuse)
 
+    def emit(phase: str, status: str, payload: Optional[dict] = None) -> None:
+        if progress_callback is None:
+            return
+        try:
+            progress_callback(phase, status, payload)
+        except Exception:
+            logger.debug("Progress callback failed for phase %s", phase, exc_info=True)
+
     def expand_node(state: GraphState):
         """LLM expansion step for the original request.
 
@@ -146,17 +165,33 @@ def build_app(llm: object, langfuse: Langfuse | None):
         not needed, pre-populate a single subproblem to allow routing directly
         to generation.
         """
+        emit("expand", "start", {"request": state.get("request")})
         expanded, needs_decomp, single_task = expander.expand(
             state["request"], state["schema"]
         )
         out: GraphState = {"expanded": expanded, "needs_decomposition": needs_decomp}
         if not needs_decomp:
             out["subproblems"] = [single_task or state["request"]]
+            emit(
+                "decompose",
+                "skipped",
+                {"reason": "Single task", "subproblems": out["subproblems"]},
+            )
+        emit(
+            "expand",
+            "complete",
+            {
+                "expanded": expanded,
+                "needs_decomposition": needs_decomp,
+            },
+        )
         return out
 
     def decompose_node(state: GraphState):
         """Break the expanded request into subproblems."""
+        emit("decompose", "start", {"expanded": state.get("expanded")})
         subproblems = decomposer.decompose(state["expanded"], state["schema"])
+        emit("decompose", "complete", {"subproblems": subproblems})
         return {"subproblems": subproblems}
 
     def generate_node(state: GraphState):
@@ -194,6 +229,7 @@ def build_app(llm: object, langfuse: Langfuse | None):
             return any(re.search(p, fragment, flags=re.IGNORECASE) for p in patterns)
 
         subproblems = state.get("subproblems") or [state.get("expanded") or state.get("request", "")]
+        emit("generate", "start", {"subproblems": subproblems})
         previous = [""] * len(subproblems)
         errors = [""] * len(subproblems)
         fragments: List[str | None] = [None] * len(subproblems)
@@ -267,6 +303,16 @@ def build_app(llm: object, langfuse: Langfuse | None):
         # surface them now so we can skip the final validation pass.
         if single_mode and len(final_fragments) == 1 and single_rows is not None:
             out["results"] = single_rows
+            emit(
+                "generate",
+                "complete",
+                {
+                    "fragments": final_fragments,
+                    "validated_rows": len(single_rows) if isinstance(single_rows, list) else None,
+                },
+            )
+        else:
+            emit("generate", "complete", {"fragments": final_fragments})
         return out
 
     def compose_node(state: GraphState):
@@ -274,10 +320,13 @@ def build_app(llm: object, langfuse: Langfuse | None):
 
         Optimization: if only one fragment exists, bypass composer.
         """
+        emit("compose", "start", {"fragments": state.get("fragments")})
         frags = state["fragments"]
         if len(frags) == 1:
+            emit("compose", "complete", {"final_query": frags[0], "reason": "Single fragment"})
             return {"final_query": frags[0]}
         query = composer.compose(frags)
+        emit("compose", "complete", {"final_query": query})
         return {"final_query": query}
 
     def final_validate_node(state: GraphState):
@@ -288,11 +337,17 @@ def build_app(llm: object, langfuse: Langfuse | None):
         refine the query using the database error and retry up to 2 more times.
         """
         if state.get("results") is not None:
+            emit(
+                "final_validate",
+                "skipped",
+                {"reason": "Results already validated", "results": state.get("results")},
+            )
             return {}
         query = state["final_query"]
         fragments = state.get("fragments", [])
         last_error: str | None = None
         fv_trace: List[dict] = []
+        emit("final_validate", "start", {"query": query})
         for _ in range(3):
             ok, res = validator.validate(query)
             fv_trace.append({
@@ -303,6 +358,15 @@ def build_app(llm: object, langfuse: Langfuse | None):
             })
             if ok:
                 # Succeed with potentially refined query
+                emit(
+                    "final_validate",
+                    "success",
+                    {
+                        "query": query,
+                        "row_count": len(res) if isinstance(res, list) else None,
+                        "results": res,
+                    },
+                )
                 return {"results": res, "final_query": query, "final_validate_trace": fv_trace}
             last_error = str(res)
             # Try refining only if there are fragments and we have an error
@@ -312,13 +376,20 @@ def build_app(llm: object, langfuse: Langfuse | None):
                 # If refine fails (e.g., LLM issues), break and surface original error
                 break
         # If we reach here, we failed all attempts
+        emit(
+            "final_validate",
+            "error",
+            {"query": query, "error": last_error or "Validation failed"},
+        )
         return {"error": last_error or "Validation failed", "final_validate_trace": fv_trace}
 
     def explain_node(state: GraphState):
         """Generate a human-readable explanation of the final query."""
         if "error" in state:
             return {}
+        emit("explain", "start", {"query": state.get("final_query")})
         explanation = composer.explain(state["final_query"], state["schema"])
+        emit("explain", "complete", {"explanation": explanation})
         return {"explanation": explanation}
 
     workflow = StateGraph(GraphState)
@@ -398,11 +469,38 @@ def save_run(question: str, result: GraphState, llm: object) -> None:
         "token_usage": usage,
         "metadata": metadata,
     }
-    with open("last_run.json", "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2)
+    payload_text = json.dumps(payload, indent=2)
+
+    targets = [Path("last_run.json")]
+    fallback_dir = os.getenv("LAST_RUN_DIR")
+    if fallback_dir:
+        targets.append(Path(fallback_dir) / "last_run.json")
+    targets.append(Path(tempfile.gettempdir()) / "text2cypher_last_run.json")
+
+    for idx, path in enumerate(targets):
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            # Parent may already exist or cannot be created; continue to attempt write
+            pass
+        try:
+            path.write_text(payload_text, encoding="utf-8")
+            if idx > 0:
+                logger.warning("last_run.json not writable; saved fallback copy at %s", path)
+            break
+        except PermissionError:
+            if idx == len(targets) - 1:
+                logger.error("Unable to persist last_run.json due to permission errors")
+        except OSError as exc:
+            if idx == len(targets) - 1:
+                logger.error("Unable to persist last_run.json: %s", exc)
 
 
-def run(question: str, schema: str) -> GraphState:
+def run(
+    question: str,
+    schema: str,
+    progress_callback: Optional[Callable[[str, str, Optional[dict]], None]] = None,
+) -> GraphState:
     """Execute the agent workflow for ``question`` against ``schema``."""
     llm = get_llm()
     if llm is None:
@@ -419,7 +517,7 @@ def run(question: str, schema: str) -> GraphState:
             host=LANGFUSE_HOST,
         )
         trace = start_span(langfuse_client, "run", {"request": question, "schema": schema})
-    app = build_app(llm, trace)
+    app = build_app(llm, trace, progress_callback)
     inputs: GraphState = {"request": question, "schema": schema}
     try:
         result = app.invoke(inputs)

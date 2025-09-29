@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>text2Cypher Console</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <main class="layout">
+      <section class="panel">
+        <header class="panel__header">
+          <h1>CTI Cypher Assistant</h1>
+          <p>Ask a question about the CTI graph. The assistant will craft a Cypher query, run it, and return the results.</p>
+        </header>
+        <form id="query-form" class="panel__form">
+          <label for="question" class="input-label">Question</label>
+          <textarea id="question" name="question" rows="4" placeholder="e.g. Show the top attack techniques targeting finance" required></textarea>
+          <div class="actions">
+            <button type="submit" id="run-btn">Run Query</button>
+            <button type="button" id="explain-btn" disabled>Show Explanation</button>
+          </div>
+        </form>
+        <div id="status" role="status" aria-live="polite"></div>
+      </section>
+      <section class="results" id="results-panel">
+        <div class="results__progress">
+          <h2>Query Progress</h2>
+          <ul id="progress-list" class="progress-list"></ul>
+        </div>
+        <div class="results__query" id="query-display"></div>
+        <div class="results__table" id="results"></div>
+        <article class="results__explanation hidden" id="explanation"></article>
+      </section>
+    </main>
+    <script>
+      const form = document.getElementById('query-form');
+      const questionInput = document.getElementById('question');
+      const statusBox = document.getElementById('status');
+      const resultsPanel = document.getElementById('results');
+      const queryDisplay = document.getElementById('query-display');
+      const explanationBox = document.getElementById('explanation');
+      const explainBtn = document.getElementById('explain-btn');
+      const runBtn = document.getElementById('run-btn');
+      const progressList = document.getElementById('progress-list');
+      let lastExplanation = '';
+      const phaseState = new Map();
+      const decoder = new TextDecoder();
+
+      const PHASE_TITLES = {
+        submit: 'Request Received',
+        expand: 'Expand Request',
+        decompose: 'Break Down Request',
+        generate: 'Generate Fragments',
+        compose: 'Compose Cypher',
+        final_validate: 'Validate Query',
+        explain: 'Build Explanation'
+      };
+
+      function setStatus(message, variant = 'info') {
+        statusBox.textContent = message;
+        statusBox.className = variant;
+      }
+
+      function resetResults() {
+        resultsPanel.innerHTML = '';
+        queryDisplay.textContent = '';
+        explanationBox.textContent = '';
+        explanationBox.classList.add('hidden');
+        explainBtn.disabled = true;
+        lastExplanation = '';
+        progressList.innerHTML = '';
+        phaseState.clear();
+      }
+
+      function renderTable(rows) {
+        if (!rows || !rows.length) {
+          resultsPanel.innerHTML = '<p class="placeholder">No rows returned.</p>';
+          return;
+        }
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const tbody = document.createElement('tbody');
+        const headers = Object.keys(rows[0]);
+        const headerRow = document.createElement('tr');
+        headers.forEach((h) => {
+          const th = document.createElement('th');
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        rows.forEach((row) => {
+          const tr = document.createElement('tr');
+          headers.forEach((h) => {
+            const td = document.createElement('td');
+            const value = row[h];
+            td.textContent = typeof value === 'object' && value !== null ? JSON.stringify(value) : value;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        resultsPanel.innerHTML = '';
+        resultsPanel.appendChild(table);
+      }
+
+      function ensurePhaseItem(phase) {
+        if (phaseState.has(phase)) {
+          return phaseState.get(phase);
+        }
+        const li = document.createElement('li');
+        li.className = 'progress__item';
+        li.dataset.state = 'pending';
+        const title = document.createElement('span');
+        title.className = 'progress__title';
+        title.textContent = PHASE_TITLES[phase] || phase;
+        const status = document.createElement('span');
+        status.className = 'progress__status';
+        status.textContent = 'Pending';
+        li.appendChild(title);
+        li.appendChild(status);
+        progressList.appendChild(li);
+        const record = { element: li, statusEl: status };
+        phaseState.set(phase, record);
+        return record;
+      }
+
+      function describeStatus(status) {
+        switch (status) {
+          case 'start':
+            return 'In progress';
+          case 'complete':
+          case 'success':
+            return 'Complete';
+          case 'skipped':
+            return 'Skipped';
+          case 'error':
+            return 'Error';
+          default:
+            return status.charAt(0).toUpperCase() + status.slice(1);
+        }
+      }
+
+      function updateProgress(event) {
+        if (!event || !event.phase || !event.status) {
+          return;
+        }
+        const record = ensurePhaseItem(event.phase);
+        record.element.dataset.state = event.status;
+        record.statusEl.textContent = describeStatus(event.status);
+
+        const label = PHASE_TITLES[event.phase] || event.phase;
+        if (event.status === 'start') {
+          setStatus(`${label} in progress…`, 'info');
+        } else if ((event.status === 'success' || event.status === 'complete') && event.phase !== 'explain') {
+          setStatus(`${label} complete.`, 'info');
+        } else if (event.status === 'skipped') {
+          setStatus(`${label} skipped.`, 'info');
+        }
+
+        if (event.query) {
+          queryDisplay.innerHTML = `<h2>Generated Cypher</h2><pre><code>${event.query}</code></pre>`;
+        }
+        if (event.final_query) {
+          queryDisplay.innerHTML = `<h2>Generated Cypher</h2><pre><code>${event.final_query}</code></pre>`;
+        }
+        if (event.results) {
+          renderTable(event.results);
+          const count = Array.isArray(event.results) ? event.results.length : 0;
+          setStatus(`Returned ${count} row(s).`, 'success');
+        }
+        if (event.explanation) {
+          lastExplanation = event.explanation;
+          explainBtn.disabled = false;
+        }
+        if (event.status === 'error' && event.error) {
+          setStatus(event.error, 'error');
+        }
+      }
+
+      function handleComplete(data) {
+        if (!data) {
+          return;
+        }
+        if (data.query) {
+          queryDisplay.innerHTML = `<h2>Generated Cypher</h2><pre><code>${data.query}</code></pre>`;
+        }
+        if (data.results) {
+          renderTable(data.results);
+          const count = Array.isArray(data.results) ? data.results.length : 0;
+          setStatus(`Returned ${count} row(s).`, data.error ? 'error' : 'success');
+        }
+        if (data.explanation) {
+          lastExplanation = data.explanation;
+          explainBtn.disabled = false;
+        } else {
+          explainBtn.disabled = true;
+        }
+        if (data.error) {
+          setStatus(data.error, 'error');
+        }
+      }
+
+      function parseSseChunk(chunk) {
+        const lines = chunk.split('\n');
+        let eventType = 'message';
+        let data = '';
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            eventType = line.slice(6).trim();
+          } else if (line.startsWith('data:')) {
+            data += line.slice(5).trim();
+          }
+        }
+        if (!data) {
+          return null;
+        }
+        try {
+          return { type: eventType, data: JSON.parse(data) };
+        } catch (err) {
+          console.warn('Unable to parse event payload', err);
+          return null;
+        }
+      }
+
+      async function consumeStream(response) {
+        const reader = response.body.getReader();
+        let buffer = '';
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) {
+            break;
+          }
+          buffer += decoder.decode(value, { stream: true });
+          let boundary = buffer.indexOf('\n\n');
+          while (boundary !== -1) {
+            const chunk = buffer.slice(0, boundary).trim();
+            buffer = buffer.slice(boundary + 2);
+            if (chunk) {
+              const event = parseSseChunk(chunk);
+              if (event) {
+                if (event.type === 'progress') {
+                  updateProgress(event.data);
+                } else if (event.type === 'complete') {
+                  handleComplete(event.data);
+                } else if (event.type === 'error') {
+                  const message = event.data && event.data.error ? event.data.error : 'Query failed.';
+                  setStatus(message, 'error');
+                  return;
+                }
+              }
+            }
+            boundary = buffer.indexOf('\n\n');
+          }
+        }
+      }
+
+      async function runQuery(event) {
+        event.preventDefault();
+        const question = questionInput.value.trim();
+        if (!question) {
+          setStatus('Please enter a question.', 'error');
+          return;
+        }
+        resetResults();
+        setStatus('Running query...', 'info');
+        runBtn.disabled = true;
+        explainBtn.disabled = true;
+        try {
+          const response = await fetch('/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question })
+          });
+          if (!response.ok) {
+            let errorText = 'Query failed.';
+            try {
+              const data = await response.json();
+              errorText = data.error || errorText;
+            } catch (err) {
+              errorText = await response.text();
+            }
+            throw new Error(errorText || 'Query failed.');
+          }
+          await consumeStream(response);
+        } catch (err) {
+          console.error(err);
+          setStatus(err.message || 'Unexpected error.', 'error');
+        } finally {
+          runBtn.disabled = false;
+        }
+      }
+
+      function showExplanation() {
+        if (!lastExplanation) {
+          return;
+        }
+        explanationBox.textContent = lastExplanation;
+        explanationBox.classList.remove('hidden');
+        explainBtn.disabled = true;
+      }
+
+      form.addEventListener('submit', runQuery);
+      explainBtn.addEventListener('click', showExplanation);
+    </script>
+  </body>
+</html>
