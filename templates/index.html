@@ -17,12 +17,23 @@
         <form id="query-form" class="panel__form">
           <label for="question" class="input-label">Question</label>
           <textarea id="question" name="question" rows="4" placeholder="e.g. Show the top attack techniques targeting finance" required></textarea>
+          <label class="toggle-control" for="clarify-toggle">
+            <span class="toggle-control__switch">
+              <input type="checkbox" id="clarify-toggle" name="clarify-toggle" />
+              <span class="toggle-control__slider" aria-hidden="true"></span>
+            </span>
+            <span class="toggle-control__text">
+              <span class="toggle-control__title">Ask clarifying follow-up when needed</span>
+              <span class="toggle-control__hint">Only triggers if the request is ambiguous or underspecified.</span>
+            </span>
+          </label>
           <div class="actions">
             <button type="submit" id="run-btn">Run Query</button>
             <button type="button" id="explain-btn" disabled>Show Explanation</button>
           </div>
         </form>
         <div id="status" role="status" aria-live="polite"></div>
+        <div id="clarification" class="clarification hidden" role="note" aria-live="polite"></div>
       </section>
       <section class="results" id="results-panel">
         <div class="results__progress">
@@ -44,6 +55,8 @@
       const explainBtn = document.getElementById('explain-btn');
       const runBtn = document.getElementById('run-btn');
       const progressList = document.getElementById('progress-list');
+  const clarifyToggle = document.getElementById('clarify-toggle');
+  const clarificationBox = document.getElementById('clarification');
       let lastExplanation = '';
       const phaseState = new Map();
       const decoder = new TextDecoder();
@@ -55,7 +68,8 @@
         generate: 'Generate Fragments',
         compose: 'Compose Cypher',
         final_validate: 'Validate Query',
-        explain: 'Build Explanation'
+        explain: 'Build Explanation',
+        clarify: 'Clarification Required'
       };
 
       function setStatus(message, variant = 'info') {
@@ -72,6 +86,7 @@
         lastExplanation = '';
         progressList.innerHTML = '';
         phaseState.clear();
+        displayClarification('');
       }
 
       function renderTable(rows) {
@@ -104,6 +119,19 @@
         table.appendChild(tbody);
         resultsPanel.innerHTML = '';
         resultsPanel.appendChild(table);
+      }
+
+      function displayClarification(question) {
+        if (!clarificationBox) {
+          return;
+        }
+        if (question && question.trim()) {
+          clarificationBox.textContent = question.trim();
+          clarificationBox.classList.remove('hidden');
+        } else {
+          clarificationBox.textContent = '';
+          clarificationBox.classList.add('hidden');
+        }
       }
 
       function ensurePhaseItem(phase) {
@@ -152,7 +180,12 @@
         record.statusEl.textContent = describeStatus(event.status);
 
         const label = PHASE_TITLES[event.phase] || event.phase;
-        if (event.status === 'start') {
+        if (event.phase === 'clarify' && event.status === 'start') {
+          const clarificationMessage = event.clarification_question && event.clarification_question.trim()
+            ? `Awaiting clarification: ${event.clarification_question.trim()}`
+            : 'Awaiting clarification before continuing.';
+          setStatus(clarificationMessage, 'info');
+        } else if (event.status === 'start') {
           setStatus(`${label} in progress…`, 'info');
         } else if ((event.status === 'success' || event.status === 'complete') && event.phase !== 'explain') {
           setStatus(`${label} complete.`, 'info');
@@ -178,6 +211,14 @@
         if (event.status === 'error' && event.error) {
           setStatus(event.error, 'error');
         }
+
+        if (Object.prototype.hasOwnProperty.call(event, 'clarification_needed')) {
+          if (event.clarification_needed && event.clarification_question) {
+            displayClarification(event.clarification_question);
+          } else {
+            displayClarification('');
+          }
+        }
       }
 
       function handleComplete(data) {
@@ -198,8 +239,23 @@
         } else {
           explainBtn.disabled = true;
         }
-        if (data.error) {
+        if (data.awaiting_clarification) {
+          const clarificationMessage = data.clarification_question && data.clarification_question.trim()
+            ? `Awaiting clarification: ${data.clarification_question.trim()}`
+            : 'Awaiting clarification before continuing.';
+          setStatus(clarificationMessage, 'info');
+          if (questionInput) {
+            questionInput.focus();
+          }
+        } else if (data.error) {
           setStatus(data.error, 'error');
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'clarification_needed')) {
+          if (data.clarification_needed && data.clarification_question) {
+            displayClarification(data.clarification_question);
+          } else {
+            displayClarification('');
+          }
         }
       }
 
@@ -272,7 +328,10 @@
           const response = await fetch('/query', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question })
+            body: JSON.stringify({
+              question,
+              clarifyAmbiguity: clarifyToggle ? clarifyToggle.checked : false
+            })
           });
           if (!response.ok) {
             let errorText = 'Query failed.';

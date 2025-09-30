@@ -122,6 +122,8 @@ class GraphState(TypedDict, total=False):
     schema: str
     expanded: str
     needs_decomposition: bool
+    clarification_needed: bool
+    clarification_question: str
     subproblems: List[str]
     fragments: List[str]
     generation_trace: List[dict]
@@ -130,12 +132,14 @@ class GraphState(TypedDict, total=False):
     explanation: str
     error: str
     final_validate_trace: List[dict]
+    awaiting_clarification: bool
 
 
 def build_app(
     llm: object,
     langfuse: Langfuse | None,
     progress_callback: Optional[Callable[[str, str, Optional[dict]], None]] = None,
+    clarification_enabled: bool = False,
 ):
     """Create the LangGraph application wiring all agents."""
     if llm is None:
@@ -144,7 +148,7 @@ def build_app(
         )
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
-    expander = ExpansionAgent(llm, langfuse)
+    expander = ExpansionAgent(llm, langfuse, ask_when_ambiguous=clarification_enabled)
     decomposer = DecompositionAgent(llm, langfuse)
     matcher = MatcherAgent(llm, driver, langfuse)
     validator = ValidationAgent(driver, langfuse)
@@ -166,10 +170,21 @@ def build_app(
         to generation.
         """
         emit("expand", "start", {"request": state.get("request")})
-        expanded, needs_decomp, single_task = expander.expand(
+        (
+            expanded,
+            needs_decomp,
+            single_task,
+            clarification_needed,
+            clarification_question,
+        ) = expander.expand(
             state["request"], state["schema"]
         )
-        out: GraphState = {"expanded": expanded, "needs_decomposition": needs_decomp}
+        out: GraphState = {
+            "expanded": expanded,
+            "needs_decomposition": needs_decomp,
+            "clarification_needed": clarification_needed,
+            "clarification_question": clarification_question,
+        }
         if not needs_decomp:
             out["subproblems"] = [single_task or state["request"]]
             emit(
@@ -183,9 +198,28 @@ def build_app(
             {
                 "expanded": expanded,
                 "needs_decomposition": needs_decomp,
+                "clarification_needed": clarification_needed,
+                "clarification_question": clarification_question,
             },
         )
         return out
+
+    def clarification_node(state: GraphState):
+        """Pause the workflow when clarification is required before continuing."""
+        question = state.get("clarification_question")
+        emit(
+            "clarify",
+            "start",
+            {
+                "clarification_needed": state.get("clarification_needed", False),
+                "clarification_question": question,
+            },
+        )
+        message = "Clarification needed before generating Cypher. Please answer the follow-up question."
+        return {
+            "awaiting_clarification": True,
+            "error": message,
+        }
 
     def decompose_node(state: GraphState):
         """Break the expanded request into subproblems."""
@@ -503,6 +537,7 @@ def build_app(
 
     workflow = StateGraph(GraphState)
     workflow.add_node("expand", expand_node)
+    workflow.add_node("clarification", clarification_node)
     workflow.add_node("decompose", decompose_node)
     workflow.add_node("generate", generate_node)
     workflow.add_node("compose", compose_node)
@@ -511,14 +546,17 @@ def build_app(
 
     # Route from expand -> decompose or generate based on expander's decision
     def _route_after_expand(s: GraphState) -> str:
+        if s.get("clarification_needed"):
+            return "clarification"
         return "decompose" if s.get("needs_decomposition") else "generate"
 
     # langgraph supports conditional edges; map route keys to node names
     workflow.add_conditional_edges(
         "expand",
         _route_after_expand,
-        {"decompose": "decompose", "generate": "generate"},
+        {"clarification": "clarification", "decompose": "decompose", "generate": "generate"},
     )
+    workflow.add_edge("clarification", END)
     workflow.add_edge("decompose", "generate")
     workflow.add_edge("generate", "compose")
     workflow.add_edge("compose", "final_validate")
@@ -552,6 +590,8 @@ def save_run(question: str, result: GraphState, llm: object) -> None:
         "expansion": {
             "expanded": result.get("expanded"),
             "needs_decomposition": result.get("needs_decomposition"),
+            "clarification_needed": result.get("clarification_needed"),
+            "clarification_question": result.get("clarification_question"),
         },
         "decomposition": {
             "subproblems": result.get("subproblems"),
@@ -577,6 +617,8 @@ def save_run(question: str, result: GraphState, llm: object) -> None:
         "agents": agents,
         "token_usage": usage,
         "metadata": metadata,
+        "clarification_needed": result.get("clarification_needed"),
+        "clarification_question": result.get("clarification_question"),
     }
     payload_text = json.dumps(payload, indent=2)
 
@@ -609,6 +651,7 @@ def run(
     question: str,
     schema: str,
     progress_callback: Optional[Callable[[str, str, Optional[dict]], None]] = None,
+    clarification_enabled: bool = False,
 ) -> GraphState:
     """Execute the agent workflow for ``question`` against ``schema``."""
     llm = get_llm()
@@ -626,7 +669,7 @@ def run(
             host=LANGFUSE_HOST,
         )
         trace = start_span(langfuse_client, "run", {"request": question, "schema": schema})
-    app = build_app(llm, trace, progress_callback)
+    app = build_app(llm, trace, progress_callback, clarification_enabled=clarification_enabled)
     inputs: GraphState = {"request": question, "schema": schema}
     try:
         result = app.invoke(inputs)
