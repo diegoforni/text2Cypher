@@ -10,13 +10,22 @@ from .langfuse_utils import start_span, finish_span
 
 
 class ExpansionAgent:
-    """Ask clarifying questions and produce a schema-grounded description."""
+    """Ask clarifying questions and produce a schema-grounded description.
 
-    def __init__(self, llm: BaseChatModel, langfuse: Optional[Langfuse] = None):
+    The constructor accepts `ask_when_ambiguous` for compatibility with
+    `main.build_app`, which may request the agent prompt clarifying
+    questions when the expanded result appears ambiguous.
+    """
+
+    def __init__(self, llm: BaseChatModel, langfuse: Optional[Langfuse] = None, ask_when_ambiguous: bool = False):
         self.llm = llm
         self.langfuse = langfuse
+        # Whether the agent should actively ask clarifying questions when
+        # it detects ambiguity. Currently reserved for higher-level logic;
+        # stored for potential future use.
+        self.ask_when_ambiguous = bool(ask_when_ambiguous)
 
-    def expand(self, request: str, schema: str) -> Tuple[str, bool, str]:
+    def expand(self, request: str, schema: str) -> Tuple[str, bool, str, bool, str]:
         system_message = (
             "You are a data analysis expert specializing in graph databases and cybersecurity data. "
             "Your job is ONLY to clarify the request and capture context for later query generation. "
@@ -115,4 +124,18 @@ Provide a single JSON object with these keys (no code fences):
             "needs_decomposition": needs_decomposition,
             "single_task": single_task,
         })
-        return expanded_text, needs_decomposition, single_task
+        # For backward/forward compatibility the expand method returns a
+        # 5-tuple: (expanded_text, needs_decomposition, single_task,
+        # clarification_needed, clarification_question).
+        # The last two values default to False/"" unless the agent
+        # explicitly detects a need for clarification.
+        clarification_needed = False
+        clarification_question = ""
+
+        return (
+            expanded_text,
+            needs_decomposition,
+            single_task,
+            clarification_needed,
+            clarification_question,
+        )

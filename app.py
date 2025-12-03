@@ -1,6 +1,17 @@
 """Flask web interface for text2Cypher."""
 from __future__ import annotations
 
+# Ensure the project's .env is loaded as early as possible so a Flask/Werkzeug
+# process that imports this module (possibly with a different cwd) gets the
+# correct MODEL_PROVIDER and API key environment variables.
+import logging
+from pathlib import Path
+from dotenv import load_dotenv
+_env_path = Path(__file__).resolve().parent / ".env"
+if _env_path.exists():
+    load_dotenv(_env_path)
+    logging.getLogger(__name__).debug("Loaded .env from %s", _env_path)
+
 import atexit
 import json
 import logging

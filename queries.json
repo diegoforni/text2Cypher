@@ -73,5 +73,31 @@
     "category": "complex",
     "prompt": "Identify pairs of ASNs that both attacked the same country using the same technique within the same month; return top 10 pairs by co-attack count.",
     "cypher": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[a:ATTACKS]->(c:Country)\nWITH c.name AS country, a.technique AS technique, substring(toString(a.documented_create_date[0]),0,7) AS year_month, asn.number AS asn\nWITH country, technique, year_month, collect(DISTINCT asn)[0..50] AS asns\nUNWIND range(0, size(asns)-2) AS i\nUNWIND range(i+1, size(asns)-1) AS j\nWITH asns[i] AS asnA, asns[j] AS asnB, country, technique, year_month\nRETURN asnA, asnB, country, technique, year_month, count(*) AS co_attacks\nORDER BY co_attacks DESC\nLIMIT 10"
+  },
+  {
+    "category": "temporal",
+    "prompt": "Which protocol appears most frequently in attacks targeting Germany between 9am and 4pm UTC?",
+    "cypher": "MATCH (:IP)-[a:ATTACKS]->(c:Country {name:'Germany'})\nWHERE a.documented_create_date IS NOT NULL\n  AND a.documented_create_date.hour >= 9\n  AND a.documented_create_date.hour < 16\nWITH a.protocol AS protocol, count(*) AS attacks\nORDER BY attacks DESC\nLIMIT 1\nRETURN protocol, attacks"
+  },
+  {
+    "category": "graph-structure",
+    "prompt": "Where are most IPs using brute force based or hosted?",
+    "cypher": "MATCH (ip:IP)-[a:ATTACKS]->(:Country)\nWHERE a.technique STARTS WITH 'T1110'\nWITH DISTINCT ip\nMATCH (ip)-[:FROM]->(origin:Country)\nWITH origin.name AS country, count(DISTINCT ip) AS ips\nORDER BY ips DESC\nLIMIT 1\nRETURN country, ips"
+  }
+  ,
+  {
+    "category": "temporal",
+    "prompt": "Which country has been the primary target of Data Destruction (MITRE T1485) campaigns?",
+    "cypher": "MATCH (:IP)-[a:ATTACKS]->(c:Country)\nWHERE (a.technique STARTS WITH 'T1485') OR toLower(a.technique) CONTAINS 'data destruct'\nRETURN c.name AS country, count(*) AS attacks\nORDER BY attacks DESC\nLIMIT 1\nRETURN country, attacks"
+  },
+  {
+    "category": "temporal",
+    "prompt": "Which countries receive attacks most regularly (by number of active days)?",
+    "cypher": "MATCH (:IP)-[a:ATTACKS]->(c:Country)\nWHERE a.documented_create_date IS NOT NULL\nWITH c.name AS country, count(DISTINCT date(a.documented_create_date)) AS active_days\nRETURN country, active_days\nORDER BY active_days DESC\nLIMIT 10"
+  },
+  {
+    "category": "graph-structure",
+    "prompt": "Identify the top 10 source IP addresses that demonstrate the most persistent malicious activity over time.",
+    "cypher": "MATCH (ip:IP)-[a:ATTACKS]->(:Country)\nWHERE a.documented_create_date IS NOT NULL\nWITH ip.address AS ip, count(DISTINCT date(a.documented_create_date)) AS active_days, min(a.documented_create_date) AS first, max(a.documented_create_date) AS last\nWITH ip, active_days, first, last, duration.between(first, last) AS span\nRETURN ip, active_days, first, last, span.days AS span_days\nORDER BY active_days DESC, span_days DESC\nLIMIT 10"
   }
 ]

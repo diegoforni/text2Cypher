@@ -47,7 +47,9 @@ class GenerationAgent:
             "SCOPING RULES: After a WITH clause only referenced variables remain in scope; if you didn't carry a variable forward, "
             "use count(*) instead of count(r). "
             "PAIR GENERATION: When forming ASN pairs within a group, first collect DISTINCT ASNs per group, then UNWIND ranges "
-            "to create combinations (avoid Cartesian products)."
+            "to create combinations (avoid Cartesian products). "
+            "TECHNOLOGY/PROTOCOL FILTERING: When the user asks about technologies or protocols, always filter out records "
+            "where the technology or protocol value is 'unknown' (e.g., WHERE r.protocol <> 'unknown' or WHERE r.technique <> 'unknown')."
         )
         # Sanitize subproblem to avoid leaking prior fragments/errors or fenced code
         cleaned_subproblem = subproblem or ""

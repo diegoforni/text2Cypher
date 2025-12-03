@@ -1,0 +1,115 @@
+nohup: ignoring input
+ * Serving Flask app 'app'
+ * Debug mode: off
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://10.0.0.49:5001
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 02:56:04] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 02:56:04] "GET /static/styles.css HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 02:56:04] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 02:56:13] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 02:56:13] "GET /static/styles.css HTTP/1.1" 200 -
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 02:56:14] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+INFO:werkzeug:205.210.31.17 - - [09/Nov/2025 03:05:22] "GET / HTTP/1.1" 200 -
+ERROR:werkzeug:64.62.156.142 - - [09/Nov/2025 03:57:04] code 400, message Bad HTTP/0.9 request type ('\x16\x03\x01\x00{\x01\x00\x00w\x03\x03"ªË|6°\x8c£\x8d:\x06çA\x01\x16Þµ\x18YX¦ò\x00ô§\x87\'Úéy\x81ö\x00\x00\x1aÀ/À+À\x11À\x07À\x13À')
+INFO:werkzeug:64.62.156.142 - - [09/Nov/2025 03:57:04] "[31m[1m\x16\x03\x01\x00{\x01\x00\x00w\x03\x03"ªË|6°\x8c£\x8d:\x06çA\x01\x16Þµ\x18YX¦ò\x00ô§\x87'Úéy\x81ö\x00\x00\x1aÀ/À+À\x11À\x07À\x13À\x09À\x14À[0m" 400 -
+ERROR:werkzeug:205.210.31.138 - - [09/Nov/2025 03:57:54] code 400, message Bad request syntax ('\x16\x03\x01\x00î\x01\x00\x00ê\x03\x03¿SU_;Doh=\x11\x14\x17\x8fÏÈxÛöuQ\x02§=')
+INFO:werkzeug:205.210.31.138 - - [09/Nov/2025 03:57:54] "[31m[1m\x16\x03\x01\x00î\x01\x00\x00ê\x03\x03¿SU_;Doh=\x11\x14\x17\x8fÏÈxÛöuQ\x02§=[0m" 400 -
+ERROR:werkzeug:205.210.31.138 - - [09/Nov/2025 03:57:54] code 400, message Bad request syntax ("\x16\x03\x01\x00Ê\x01\x00\x00Æ\x03\x03^ª#'*Àª¦\x99-¢/¨")
+INFO:werkzeug:205.210.31.138 - - [09/Nov/2025 03:57:54] "[31m[1m\x16\x03\x01\x00Ê\x01\x00\x00Æ\x03\x03^ª#'*Àª¦\x99-¢/¨[0m" 400 -
+ERROR:werkzeug:34.77.191.38 - - [09/Nov/2025 07:04:16] code 400, message Bad request version ('\x00{\x000\x000\x000\x000\x00A\x00A\x000\x000\x00-\x000\x00A\x000\x000\x00-\x000\x000\x00a\x000\x00-\x00A\x00A\x000\x00A\x00-\x000\x000\x000\x000\x00A\x000\x00A\x00A\x000\x00A\x00A\x000\x00}\x00\x00\x00àmß_')
+INFO:werkzeug:34.77.191.38 - - [09/Nov/2025 07:04:16] "[31m[1m\x01\x00\x00ýÎú\x0b° \x00\x00\x00MMS\x14\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x12\x00\x00\x00\x01\x00\x03\x00ðððð\x0b\x00\x04\x00\x1c\x00\x03\x00N\x00S\x00P\x00l\x00a\x00y\x00e\x00r\x00/\x009\x00.\x000\x00.\x000\x00.\x002\x009\x008\x000\x00;\x00 \x00{\x000\x000\x000\x000\x00A\x00A\x000\x000\x00-\x000\x00A\x000\x000\x00-\x000\x000\x00a\x000\x00-\x00A\x00A\x000\x00A\x00-\x000\x000\x000\x000\x00A\x000\x00A\x00A\x000\x00A\x00A\x000\x00}\x00\x00\x00àmß_[0m" 400 -
+ERROR:werkzeug:34.77.191.38 - - [09/Nov/2025 07:04:22] code 400, message Bad request version ('GetClassName\x00\x00\x00\x02\x04\x00\x00\x00\x00\x01\x00')
+INFO:werkzeug:34.77.191.38 - - [09/Nov/2025 07:04:22] "[31m[1m\x00\x00\x00\x1f\x00\x00\x00\x00\x00\x00\x00\x0cGetClassName\x00\x00\x00\x02\x04\x00\x00\x00\x00\x01\x00[0m" 400 -
+INFO:werkzeug:34.77.191.38 - - [09/Nov/2025 07:04:22] "GET / HTTP/1.0" 200 -
+INFO:werkzeug:34.77.191.38 - - [09/Nov/2025 07:04:23] "GET / HTTP/1.0" 200 -
+INFO:werkzeug:34.77.191.38 - - [09/Nov/2025 07:04:23] "[33mGET /nmaplowercheck1762671862 HTTP/1.1[0m" 404 -
+INFO:werkzeug:34.77.191.38 - - [09/Nov/2025 07:04:23] "[33mPOST /sdk HTTP/1.1[0m" 404 -
+INFO:werkzeug:34.77.191.38 - - [09/Nov/2025 07:04:23] "[33mGET /evox/about HTTP/1.1[0m" 404 -
+INFO:werkzeug:34.77.191.38 - - [09/Nov/2025 07:04:23] "[33mGET /HNAP1 HTTP/1.1[0m" 404 -
+INFO:werkzeug:34.77.191.38 - - [09/Nov/2025 07:04:25] "GET / HTTP/1.0" 200 -
+INFO:werkzeug:34.77.191.38 - - [09/Nov/2025 07:04:25] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:45.33.14.197 - - [09/Nov/2025 07:32:32] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:45.79.181.251 - - [09/Nov/2025 07:32:37] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:3.137.73.221 - - [09/Nov/2025 10:56:59] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:3.137.73.221 - - [09/Nov/2025 10:59:51] "GET / HTTP/1.1" 200 -
+ERROR:werkzeug:3.137.73.221 - - [09/Nov/2025 11:00:46] code 400, message Bad request version ('À\x14À')
+INFO:werkzeug:3.137.73.221 - - [09/Nov/2025 11:00:46] "[31m[1m\x16\x03\x01\x00{\x01\x00\x00w\x03\x03 ­é\x16.Ö~ÄG\x19âä\x95\x1bö=Å\x04\x915¥²§\x80\\\x0eà`:\x05Öt\x00\x00\x1aÀ/À+À\x11À\x07À\x13À\x09À\x14À[0m" 400 -
+ERROR:werkzeug:3.137.73.221 - - [09/Nov/2025 11:01:34] code 400, message Bad request syntax ('SSH-2.0-Go')
+INFO:werkzeug:3.137.73.221 - - [09/Nov/2025 11:01:34] "[31m[1mSSH-2.0-Go[0m" 400 -
+ERROR:werkzeug:3.137.73.221 - - [09/Nov/2025 11:02:42] code 400, message Bad request syntax ('\x16\x03\x01\x00{\x01\x00\x00w\x03\x03\x97]ò²]¨ÇÕ6|lþö\x80\x01')
+INFO:werkzeug:3.137.73.221 - - [09/Nov/2025 11:02:42] "[31m[1m\x16\x03\x01\x00{\x01\x00\x00w\x03\x03\x97]ò²]¨ÇÕ6|lþö\x80\x01[0m" 400 -
+INFO:werkzeug:148.113.214.212 - - [09/Nov/2025 12:53:47] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 14:43:05] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 14:43:05] "[36mGET /static/styles.css HTTP/1.1[0m" 304 -
+WARNING:neo4j.notifications:Received notification from DBMS server: <GqlStatusObject gql_status='01N62', status_description='warn: procedure or function execution warning. Execution of the procedure db.schema.nodeTypeProperties() generated the warning The field `propertyTypes` will change output format in the next major version.', position=<SummaryInputPosition line=1, column=1, offset=0>, raw_classification='GENERIC', classification=<NotificationClassification.GENERIC: 'GENERIC'>, raw_severity='WARNING', severity=<NotificationSeverity.WARNING: 'WARNING'>, diagnostic_record={'_classification': 'GENERIC', '_severity': 'WARNING', '_position': {'offset': 0, 'line': 1, 'column': 1}, 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: 'CALL db.schema.nodeTypeProperties()'
+WARNING:neo4j.notifications:Received notification from DBMS server: <GqlStatusObject gql_status='01N62', status_description='warn: procedure or function execution warning. Execution of the procedure db.schema.relTypeProperties() generated the warning The field `propertyTypes` will change output format in the next major version.', position=<SummaryInputPosition line=1, column=1, offset=0>, raw_classification='GENERIC', classification=<NotificationClassification.GENERIC: 'GENERIC'>, raw_severity='WARNING', severity=<NotificationSeverity.WARNING: 'WARNING'>, diagnostic_record={'_classification': 'GENERIC', '_severity': 'WARNING', '_position': {'offset': 0, 'line': 1, 'column': 1}, 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: 'CALL db.schema.relTypeProperties()'
+WARNING:__main__:Schema introspection returned incomplete results; falling back to default
+INFO:__main__:Loaded schema description from Neo4j
+ERROR:__main__:Pipeline execution failed
+Traceback (most recent call last):
+  File "/srv/neo4j/text2Cypher/app.py", line 244, in run_workflow
+    result = run_pipeline(question, schema_text, progress_callback=progress)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/neo4j/text2Cypher/main.py", line 659, in run
+    raise RuntimeError(
+RuntimeError: LLM provider or API key not configured. Set MODEL_PROVIDER and API key environment variables.
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 14:44:36] "POST /query HTTP/1.1" 200 -
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 14:47:35] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 14:47:35] "[36mGET /static/styles.css HTTP/1.1[0m" 304 -
+ERROR:__main__:Pipeline execution failed
+Traceback (most recent call last):
+  File "/srv/neo4j/text2Cypher/app.py", line 244, in run_workflow
+    result = run_pipeline(question, schema_text, progress_callback=progress)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/neo4j/text2Cypher/main.py", line 659, in run
+    raise RuntimeError(
+RuntimeError: LLM provider or API key not configured. Set MODEL_PROVIDER and API key environment variables.
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 14:47:37] "POST /query HTTP/1.1" 200 -
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 16:31:46] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 16:31:46] "[36mGET /static/styles.css HTTP/1.1[0m" 304 -
+ERROR:__main__:Pipeline execution failed
+Traceback (most recent call last):
+  File "/srv/neo4j/text2Cypher/app.py", line 244, in run_workflow
+    result = run_pipeline(question, schema_text, progress_callback=progress)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/neo4j/text2Cypher/main.py", line 659, in run
+    raise RuntimeError(
+RuntimeError: LLM provider or API key not configured. Set MODEL_PROVIDER and API key environment variables.
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 16:31:50] "POST /query HTTP/1.1" 200 -
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 16:36:16] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 16:36:16] "[36mGET /static/styles.css HTTP/1.1[0m" 304 -
+ERROR:__main__:Pipeline execution failed
+Traceback (most recent call last):
+  File "/srv/neo4j/text2Cypher/app.py", line 244, in run_workflow
+    def enqueue(event: str, data: Dict[str, object] | None = None) -> None:
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/neo4j/text2Cypher/main.py", line 659, in run
+    raise RuntimeError(
+RuntimeError: LLM provider or API key not configured. Set MODEL_PROVIDER and API key environment variables.
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 16:36:27] "POST /query HTTP/1.1" 200 -
+ERROR:werkzeug:165.154.49.137 - - [09/Nov/2025 18:45:54] code 400, message Bad request version ('\x00\x9eÌ¨Ìª\x003\x00=\x00\x16À')
+INFO:werkzeug:165.154.49.137 - - [09/Nov/2025 18:45:54] "[31m[1m\x16\x03\x01\x01\x17\x01\x00\x01\x13\x03\x03îÒÛÝ÷PV6.^R\x8ek\x10A\x06æ\x9cJw\x0bsß¼\x96\x00\x0flØäÔ\x8f d!ä(M\x02¨=\x0cN¾á6\x10ä\x1a<¼\x80\x1dõK¦-¥8ë\x92'\x03¥à\x004Ì¨Ì©À/À0À+À,À\x09\x00\x9eÌ¨Ìª\x003\x00=\x00\x16À[0m" 400 -
+ERROR:werkzeug:165.154.49.137 - - [09/Nov/2025 18:46:15] code 400, message Bad request version ('\x00{\x00\x00\x00\x00\x00A\x00A\x00\x00\x00-\x00\x00A\x00\x00\x00-\x00\x00\x00a\x00\x00-\x00A\x00A\x00\x00A\x00-\x00\x00\x00\x00\x00A\x00\x00A\x00A\x00\x00A\x00A\x00\x00}\x00\x00\x00àmß_')
+INFO:werkzeug:165.154.49.137 - - [09/Nov/2025 18:46:15] "[31m[1m\x01\x00\x00ýÎú\x0b° \x00\x00\x00MMS\x14\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x12\x00\x00\x00\x01\x00\x03\x00ðððð\x0b\x00\x04\x00\x1c\x00\x03\x00N\x00S\x00P\x00l\x00a\x00y\x00e\x00r\x00/\x009\x00.\x00\x00.\x00\x00.\x02\x009\x008\x00\x00;\x00 \x00{\x00\x00\x00\x00\x00A\x00A\x00\x00\x00-\x00\x00A\x00\x00\x00-\x00\x00\x00a\x00\x00-\x00A\x00A\x00\x00A\x00-\x00\x00\x00\x00\x00A\x00\x00A\x00A\x00\x00A\x00A\x00\x00}\x00\x00\x00àmß_[0m" 400 -
+ERROR:werkzeug:165.154.49.137 - - [09/Nov/2025 18:46:26] code 400, message Bad request version ('GetClassName\x00\x00\x00\x02\x04\x00\x00\x00\x00\x01\x00')
+INFO:werkzeug:165.154.49.137 - - [09/Nov/2025 18:46:26] "[31m[1m\x00\x00\x00\x1f\x00\x00\x00\x00\x00\x00\x00\x0cGetClassName\x00\x00\x00\x02\x04\x00\x00\x00\x00\x01\x00[0m" 400 -
+INFO:werkzeug:165.154.49.137 - - [09/Nov/2025 18:46:26] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:165.154.49.137 - - [09/Nov/2025 18:46:27] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+INFO:werkzeug:165.154.49.137 - - [09/Nov/2025 18:46:28] "[33mGET /robots.txt HTTP/1.1[0m" 404 -
+INFO:werkzeug:165.154.49.137 - - [09/Nov/2025 18:46:28] "[33mGET /sitemap.xml HTTP/1.1[0m" 404 -
+INFO:werkzeug:165.154.49.137 - - [09/Nov/2025 18:46:29] "[33mGET /config.json HTTP/1.1[0m" 404 -
+INFO:werkzeug:147.185.132.240 - - [09/Nov/2025 22:35:34] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 23:10:04] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 23:10:04] "[36mGET /static/styles.css HTTP/1.1[0m" 304 -
+ERROR:__main__:Pipeline execution failed
+Traceback (most recent call last):
+  File "/srv/neo4j/text2Cypher/app.py", line 244, in run_workflow
+    def enqueue(event: str, data: Dict[str, object] | None = None) -> None:
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/neo4j/text2Cypher/main.py", line 659, in run
+    raise RuntimeError(
+RuntimeError: LLM provider or API key not configured. Set MODEL_PROVIDER and API key environment variables.
+INFO:werkzeug:191.82.44.188 - - [09/Nov/2025 23:10:06] "POST /query HTTP/1.1" 200 -

@@ -1,7 +1,15 @@
-"""Configuration helpers for environment variables and LLM selection."""
+"""Configuration helpers for environment variables and LLM selection.
 
+This module now attempts to locate a top-level `.env` file reliably using
+python-dotenv's finder and explicitly strips surrounding single/double
+quotes from API key values (a common source of "not configured" errors
+when keys are written like OPENAI_API_KEY='sk-...').
+"""
+
+import logging
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
+from pathlib import Path
 from typing import Optional, List, Tuple, Any
 import threading
 import json as _json
@@ -13,11 +21,38 @@ try:
 except Exception:  # pragma: no cover - optional dependency
     ChatGoogleGenerativeAI = None  # type: ignore
 
-load_dotenv()
+logger = logging.getLogger(__name__)
 
-MODEL_PROVIDER = os.getenv("MODEL_PROVIDER", "openai").lower()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# Try to find a .env file automatically (project root, parent dirs, etc.)
+_dotenv_path = find_dotenv()  # returns '' if not found
+if _dotenv_path:
+    load_dotenv(_dotenv_path)
+    logger.debug("Loaded environment from %s", _dotenv_path)
+else:
+    # If find_dotenv didn't locate a file (e.g., process cwd differs), try
+    # loading a .env file next to this config module (project root).
+    _project_env = Path(__file__).resolve().parent / ".env"
+    if _project_env.exists():
+        load_dotenv(_project_env)
+        logger.debug("Loaded environment from project .env at %s", _project_env)
+    else:
+        # Fallback to default behaviour (attempt to load from cwd/.env)
+        load_dotenv()
+        logger.debug("No .env found by find_dotenv(); called load_dotenv() fallback")
+
+
+def _strip_quotes(value: str | None) -> str | None:
+    """Remove surrounding single or double quotes from a string value."""
+    if not isinstance(value, str):
+        return value
+    v = value.strip()
+    if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
+        return v[1:-1]
+    return v
+
+MODEL_PROVIDER = _strip_quotes(os.getenv("MODEL_PROVIDER", "openai")).lower()
+OPENAI_API_KEY = _strip_quotes(os.getenv("OPENAI_API_KEY"))
+GEMINI_API_KEY = _strip_quotes(os.getenv("GEMINI_API_KEY"))
 # Optional: multiple Gemini keys, comma/semicolon/newline separated or JSON array
 _GEMINI_KEYS_RAW = os.getenv("GEMINI_API_KEYS", "").strip()
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
@@ -31,6 +66,15 @@ NEO4J_DB = os.getenv("NEO4J_DB", "neo4j")
 LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY")
 LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY")
 LANGFUSE_HOST = os.getenv("LANGFUSE_HOST")
+
+# Helpful warnings when config looks mis-specified
+if MODEL_PROVIDER == "gemini" and ChatGoogleGenerativeAI is None:
+    logger.warning(
+        "MODEL_PROVIDER=gemini but langchain_google_genai is not importable. "
+        "Install 'langchain-google-genai' and its dependencies or set MODEL_PROVIDER=openai."
+    )
+if MODEL_PROVIDER == "openai" and not OPENAI_API_KEY:
+    logger.warning("MODEL_PROVIDER=openai but OPENAI_API_KEY is not set.")
 
 
 def _parse_keys(value: str) -> List[str]:
