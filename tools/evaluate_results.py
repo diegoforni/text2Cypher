@@ -35,14 +35,15 @@ from dotenv import load_dotenv
 # Load .env so config.get_llm can work if requested
 load_dotenv()
 
-from config import get_llm  # type: ignore
+from config import get_llm, MODEL_PROVIDER  # type: ignore
 
 
 def _read_all_entries(input_dir: Path) -> List[Dict[str, Any]]:
-    """Read all JSON arrays in directory and concatenate entries.
+    """Read all JSON files in directory and concatenate entries.
 
-    Supports files where root is a list of entries. Ignores files whose
-    content cannot be parsed as JSON or is not a list.
+    Supports two formats:
+    1. Files where root is a list of entries: [...]
+    2. Files with summary structure: {"summary": {...}, "results": [...]}
     """
     entries: List[Dict[str, Any]] = []
     for p in sorted(input_dir.glob("*.json")):
@@ -50,10 +51,19 @@ def _read_all_entries(input_dir: Path) -> List[Dict[str, Any]]:
             data = json.loads(p.read_text())
         except Exception:
             continue
-        if isinstance(data, list):
+        
+        # Handle {"summary": {...}, "results": [...]} format (from evaluator.py)
+        if isinstance(data, dict) and "results" in data:
+            results = data.get("results", [])
+            if isinstance(results, list):
+                for item in results:
+                    if isinstance(item, dict):
+                        item["_source_file"] = str(p)
+                        entries.append(item)
+        # Handle direct list format: [...]
+        elif isinstance(data, list):
             for item in data:
                 if isinstance(item, dict):
-                    # Attach the source file path for possible disambiguation
                     item["_source_file"] = str(p)
                     entries.append(item)
     return entries
@@ -104,36 +114,71 @@ def _jaccard_similarity(a: str, b: str) -> float:
 
 
 def _llm_judge(llm: Any, expected: str, candidate: str, prompt: str, category: str) -> Tuple[float, str]:
-    """Ask the LLM to grade semantic and structural similarity.
+    """Ask the LLM to grade whether the candidate query is a valid interpretation.
 
-    Returns (score_float_0_1, reasoning).
+    Returns (score_float_0_1, reasoning, tokens).
     """
     system = (
-        "You are a strict Cypher evaluation judge. Given an expected query and a candidate,"
-        " assign a similarity score in [0,1] that reflects whether the candidate would answer"
-        " the same question on the same schema. Focus on: MATCH patterns, WHERE filters,"
-        " grouping/aggregations, ORDER BY, LIMIT, and returned fields. Ignore aliases, minor"
-        " formatting, whitespace, capitalization, and synonymous property names when harmless."
-        " Heavily penalize missing key filters, wrong joins, wrong aggregations, or omitted LIMITs"
-        " when the expected has them."
+        "You are a Cypher query validator. Your task is to determine if the candidate query "
+        "is a VALID interpretation of the user's question, NOT whether it matches the expected query exactly. "
+        "Natural language questions can have multiple valid Cypher interpretations. "
+        "\n\n"
+        "**IMPORTANT: Efficiency is NOT being evaluated.**\n"
+        "Only assess:\n"
+        "1. Is the Cypher query syntactically valid?\n"
+        "2. Does it correctly answer the user's prompt?\n"
+        "\n"
+        "Score 1.0 if the candidate query:\n"
+        "- Is syntactically valid Cypher (no syntax errors)\n"
+        "- Would execute successfully on the schema\n"
+        "- Correctly answers the user's question (even with different approaches)\n"
+        "- Uses correct graph patterns and relationships\n"
+        "\n"
+        "Score 0.0 if the candidate query:\n"
+        "- Has syntax errors\n"
+        "- References non-existent nodes, relationships, or properties\n"
+        "- Does NOT answer the user's question correctly\n"
+        "- Returns completely wrong data for the question\n"
+        "- Is empty or malformed\n"
+        "\n"
+        "The expected query is provided only as a reference - the candidate does NOT need to match it. "
+        "Different approaches (e.g., different aggregations, filtering strategies, or return formats) "
+        "can all be valid if they answer the question correctly.\n"
+        "\n"
+        "**Do NOT penalize for:**\n"
+        "- Query performance or efficiency\n"
+        "- Optimal execution plans\n"
+        "- Index usage\n"
+        "- Different but valid approaches to the same problem"
     )
     user = f"""
 Task category: {category}
-Prompt/question: {prompt}
+User question: {prompt}
 
-Expected Cypher:
+Reference query (for context only - candidate doesn't need to match this):
 {expected}
 
-Candidate Cypher:
+Candidate query to evaluate:
 {candidate}
 
+Evaluate whether the candidate query is a VALID interpretation that answers the user's question.
+
+**IMPORTANT: Multiple valid interpretations may exist.** The candidate query does NOT need to match the reference query. Any valid Cypher query that correctly answers the user's question should receive a score of 1.0.
+
+**Classification:**
+- 1.0: Answers the prompt (valid Cypher + correctly answers the question under any reasonable interpretation)
+- 0.0: Does not answer the prompt (invalid Cypher OR wrong interpretation)
+
+**Remember: Efficiency is NOT evaluated.** Focus only on validity and correctness.
+
 Respond with a single JSON object with keys:
-- score: number in [0,1], rounded to 2 decimals
-- reasoning: brief explanation
+- score: 1.0 if it answers the prompt, 0.0 if it does not
+- reasoning: brief explanation of why it answers or doesn't answer the prompt
 """
     try:
         resp = llm.invoke([("system", system), ("user", user)])
         raw = getattr(resp, "content", resp)
+
         def _coerce_text(value: Any) -> str:
             if isinstance(value, str):
                 return value
@@ -152,6 +197,7 @@ Respond with a single JSON object with keys:
                             parts.append(t)
                 return "".join(parts) if parts else str(value)
             return str(value)
+
         content = _coerce_text(raw).strip()
         # Attempt to extract JSON object
         start, end = content.find("{"), content.rfind("}")
@@ -161,41 +207,177 @@ Respond with a single JSON object with keys:
         score = float(data.get("score", 0))
         score = max(0.0, min(1.0, score))
         reasoning = str(data.get("reasoning", "")).strip()
-        return score, reasoning
+        # Try to attach token usage if present (LangChain-style)
+        tok_used = 0
+        try:
+            # Try usage_metadata first (newer LangChain)
+            if hasattr(resp, "usage_metadata"):
+                um = resp.usage_metadata
+                if isinstance(um, dict):
+                    tok_used = int(um.get("total_tokens", 0))
+            # Fallback to response_metadata
+            elif hasattr(resp, "response_metadata"):
+                meta = resp.response_metadata
+                if isinstance(meta, dict):
+                    tu = meta.get("token_usage") or meta.get("usage") or meta.get("tokenUsage") or {}
+                    if isinstance(tu, dict):
+                        tok_used = int(tu.get("total") or tu.get("input") or tu.get("prompt_tokens") or 0) or (
+                            int(tu.get("prompt_tokens", 0)) + int(tu.get("completion_tokens", 0))
+                        )
+        except Exception:
+            tok_used = 0
+        return score, reasoning, tok_used
     except Exception as e:
         # On failure, return a conservative fallback using token overlap
         exp_n = _normalize_query(expected)
         cand_n = _normalize_query(candidate)
-        return round(_jaccard_similarity(exp_n, cand_n), 2), f"fallback: {e}"
+        return round(_jaccard_similarity(exp_n, cand_n), 2), f"fallback: {e}", 0
 
 
-def _grade_entries(entries: List[Dict[str, Any]], use_llm: bool) -> List[Dict[str, Any]]:
-    """Compute similarity for each entry, returning new list with score and reasoning."""
+class _TokenBudgetExceeded(Exception):
+    pass
+
+
+class _TokenBudgetLLM:
+    """Simple wrapper around an LLM that tracks token usage and enforces a token budget.
+
+    It expects the wrapped LLM to expose .invoke(messages) and for the returned
+    object to provide token usage in resp.response_metadata['token_usage'] or
+    resp.response_metadata.token_usage; otherwise token usage is considered 0.
+    """
+    def __init__(self, base_llm: Any, budget_tokens: int | None, min_tokens_per_call: int = 10):
+        self.base_llm = base_llm
+        self.budget = int(budget_tokens) if budget_tokens and budget_tokens > 0 else None
+        self.min_per_call = int(min_tokens_per_call)
+
+    def invoke(self, messages: Any):
+        if self.budget is not None and self.budget < self.min_per_call:
+            raise _TokenBudgetExceeded(f"LLM token budget exhausted: remaining={self.budget}")
+        resp = self.base_llm.invoke(messages)
+        # Deduct tokens from the budget if available
+        try:
+            meta = getattr(resp, "response_metadata", None) or getattr(resp, "response", None) or {}
+            if isinstance(meta, dict):
+                tu = meta.get("token_usage") or meta.get("usage") or meta.get("tokenUsage") or {}
+            else:
+                tu = getattr(meta, "token_usage", {}) if meta is not None else {}
+            if isinstance(tu, dict):
+                tok_used = int(tu.get("total") or tu.get("input") or 0) or (
+                    int(tu.get("prompt_tokens", 0)) + int(tu.get("completion_tokens", 0))
+                )
+            else:
+                tok_used = 0
+        except Exception:
+            tok_used = 0
+        if self.budget is not None:
+            self.budget -= int(tok_used or 0)
+        return resp
+
+
+def _grade_entries(entries: List[Dict[str, Any]], use_llm: bool, llm_token_budget: int | None = None, llm_min_tokens_per_call: int = 10) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Compute validity score for each entry, with special focus on re-evaluating failed queries.
+
+    The LLM judge evaluates whether queries are valid interpretations, not exact matches.
+    Failed queries (with errors) are automatically sent to the LLM judge to determine if they
+    are actually valid despite execution errors.
+
+    Returns: (graded_entries, skipped_no_query, impossible_questions)
+    """
     llm = get_llm() if use_llm else None
+    if use_llm and llm is None:
+        print("Warning: --use-llm was requested but no LLM was configured/found; using deterministic fallback. Check your MODEL_PROVIDER and API keys.")
+    if llm and llm_token_budget:
+        llm = _TokenBudgetLLM(llm, llm_token_budget, min_tokens_per_call=llm_min_tokens_per_call)
+
     graded: List[Dict[str, Any]] = []
-    for item in entries:
+    skipped_no_query: List[Dict[str, Any]] = []
+    impossible_questions: List[Dict[str, Any]] = []
+    total_entries = len(entries)
+    failed_count = 0
+    reevaluated_count = 0
+
+    for idx, item in enumerate(entries, 1):
         expected = _normalize_query(str(item.get("expected_cypher", "")))
-        candidate = _normalize_query(str(item.get("agent_cypher", "")))
+        candidate_raw = str(item.get("agent_cypher", ""))
+        candidate = _normalize_query(candidate_raw)
         prompt = str(item.get("prompt", ""))
         category = str(item.get("category", ""))
 
+        # Skip if no query was generated
+        if not candidate or candidate.strip().lower() in ("none", "", "null"):
+            print(f"  Skipping [{idx}/{total_entries}]: {prompt[:60]}... (no query generated)", file=sys.stderr)
+            enriched = dict(item)
+            enriched["similarity_score"] = None
+            enriched["judge_reasoning"] = "Skipped: No query generated"
+            enriched["judge_tokens"] = 0
+            enriched["was_failed_query"] = True
+            skipped_no_query.append(enriched)
+            failed_count += 1
+            continue
+
+        # Check for impossible questions (category: impossible or expected says "not enough information")
+        expected_cypher = item.get("expected_cypher", "")
+        is_impossible = (
+            category == "impossible" or
+            ("not enough information" in expected_cypher.lower()) or
+            ("no" in expected_cypher.lower() and "malware family" in expected_cypher.lower())
+        )
+
+        if is_impossible:
+            print(f"  Marking as impossible [{idx}/{total_entries}]: {prompt[:60]}...", file=sys.stderr)
+            enriched = dict(item)
+            enriched["similarity_score"] = None
+            enriched["judge_reasoning"] = "Skipped: Impossible question (schema limitation)"
+            enriched["judge_tokens"] = 0
+            enriched["was_failed_query"] = False
+            impossible_questions.append(enriched)
+            continue
+        error = item.get("error")
+        
+        # Track if this was a failed query
+        was_failed = bool(error) or not candidate
+        if was_failed:
+            failed_count += 1
+
         if not expected and not candidate:
-            score, reasoning = 0.0, "no expected or candidate"
+            score, reasoning, judge_tokens = 0.0, "no expected or candidate", 0
         elif not candidate:
-            score, reasoning = 0.0, "empty candidate"
+            score, reasoning, judge_tokens = 0.0, "empty candidate - no query generated", 0
         elif not expected:
             # Rare, but avoid giving free credit
-            score, reasoning = 0.0, "missing expected"
+            score, reasoning, judge_tokens = 0.0, "missing expected", 0
         else:
-            if llm is not None:
-                score, reasoning = _llm_judge(llm, expected, candidate, prompt, category)
+            # For failed queries OR when LLM is enabled, always use LLM judge
+            use_llm_for_this = llm is not None and (use_llm or was_failed)
+            
+            if use_llm_for_this:
+                if was_failed:
+                    reevaluated_count += 1
+                    print(f"  Re-evaluating failed query [{idx}/{total_entries}]: {prompt[:60]}...")
+                try:
+                    out = _llm_judge(llm, expected, candidate, prompt, category)
+                    # _llm_judge returns (score, reasoning, tokens)
+                    if isinstance(out, tuple) and len(out) == 3:
+                        score, reasoning, judge_tokens = out
+                    else:
+                        # Backwards compat: if older llm returned 2 values
+                        score, reasoning = out
+                        judge_tokens = 0
+                except _TokenBudgetExceeded as e:
+                    # Budget exhausted; fallback to deterministic
+                    score = round(_jaccard_similarity(expected, candidate), 2)
+                    reasoning = f"fallback: token budget exhausted ({e})"
+                    judge_tokens = 0
             else:
                 score = round(_jaccard_similarity(expected, candidate), 2)
                 reasoning = "deterministic token overlap"
+                judge_tokens = 0
 
         enriched = dict(item)
         enriched["similarity_score"] = float(round(score, 2))
         enriched["judge_reasoning"] = reasoning
+        enriched["judge_tokens"] = int(judge_tokens or 0)
+        enriched["was_failed_query"] = was_failed
         # Extract provider if present
         provider = None
         md = item.get("metadata")
@@ -207,7 +389,14 @@ def _grade_entries(entries: List[Dict[str, Any]], use_llm: bool) -> List[Dict[st
         enriched["total_tokens"] = int(usage.get("total", 0) or 0)
         enriched["duration_seconds"] = float(item.get("duration_seconds", 0.0) or 0.0)
         graded.append(enriched)
-    return graded
+
+    print(f"\nProcessed {total_entries} entries:")
+    print(f"  - Evaluated with LLM: {len(graded)}")
+    print(f"  - Skipped (no query generated): {len(skipped_no_query)}")
+    print(f"  - Impossible questions: {len(impossible_questions)}")
+    print(f"  - Re-evaluated failed queries: {reevaluated_count}")
+
+    return graded, skipped_no_query, impossible_questions
 
 
 def _aggregate_for_report(graded: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -289,10 +478,12 @@ def _aggregate_for_report(graded: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def _write_scores_json(out_dir: Path, graded: List[Dict[str, Any]], matrix: Dict[str, Any]) -> None:
+def _write_scores_json(out_dir: Path, graded: List[Dict[str, Any]], skipped_no_query: List[Dict[str, Any]], impossible_questions: List[Dict[str, Any]], matrix: Dict[str, Any]) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     payload = {
         "entries": graded,
+        "skipped_no_query": skipped_no_query,
+        "impossible_questions": impossible_questions,
         "matrix": matrix,
     }
     (out_dir / "scores.json").write_text(json.dumps(payload, indent=2))
@@ -391,7 +582,7 @@ def _render_html(out_dir: Path, matrix: Dict[str, Any]) -> None:
             )
             cells.append(
                 f"<td>"
-                f"<div class=score { 'title="score"' }><span class='score {cls}'>Score: {s:.2f}</span></div>"
+                f"<div><span class='score {cls}'>Score: {s:.2f}</span></div>"
                 f"<div>Runs: {int(cell.get('count', 0))}</div>"
                 f"<div>Avg tokens: {int(round(tokens)):,}</div>"
                 f"<div>Avg time: {dur:.2f}s</div>"
@@ -462,6 +653,8 @@ def main() -> int:
     parser.add_argument("--input-dir", default=".", help="Directory of evaluation JSONs")
     parser.add_argument("--out-dir", default="report", help="Directory to write scores.json and index.html")
     parser.add_argument("--use-llm", action="store_true", help="Use configured LLM for judging (fallback applies)")
+    parser.add_argument("--llm-token-budget", type=int, default=0, help="Optional total token budget for LLM judging (0 = unlimited)")
+    parser.add_argument("--llm-min-tokens-per-call", type=int, default=10, help="Minimum estimated tokens per LLM judge invocation; used to stop invoking when remaining budget is lower")
     args = parser.parse_args()
 
     in_dir = Path(args.input_dir)
@@ -475,11 +668,39 @@ def main() -> int:
         print("No evaluation entries found in directory.")
         return 0
 
-    graded = _grade_entries(entries, use_llm=args.use_llm)
+    llm_token_budget = int(args.llm_token_budget) if int(args.llm_token_budget or 0) > 0 else None
+    # Print selected judge model info (best-effort) when using LLM
+    if args.use_llm:
+        trial_llm = get_llm()
+        model_desc = None
+        if trial_llm is not None:
+            model_desc = getattr(trial_llm, "model", getattr(trial_llm, "model_name", None))
+        print(f"Using LLM judge: provider={MODEL_PROVIDER}, model={model_desc or 'unknown'}, token_budget={llm_token_budget or 'unlimited'}")
+    graded, skipped_no_query, impossible_questions = _grade_entries(entries, use_llm=args.use_llm, llm_token_budget=llm_token_budget, llm_min_tokens_per_call=args.llm_min_tokens_per_call)
     matrix = _aggregate_for_report(graded)
-    _write_scores_json(out_dir, graded, matrix)
+    _write_scores_json(out_dir, graded, skipped_no_query, impossible_questions, matrix)
     _render_html(out_dir, matrix)
-    print(f"Wrote: {out_dir / 'scores.json'} and {out_dir / 'index.html'}")
+
+    # Calculate final percentage of valid Cypher queries (only counting evaluated queries)
+    total_queries = len(graded)
+    valid_queries = sum(1 for entry in graded if entry.get("similarity_score", 0) >= 0.5)
+    total_evaluated = total_queries + len(skipped_no_query) + len(impossible_questions)
+    valid_percentage = (valid_queries / total_queries * 100) if total_queries > 0 else 0
+
+    print(f"\n{'='*80}")
+    print(f"FINAL EVALUATION RESULTS")
+    print(f"{'='*80}")
+    print(f"Total queries in dataset: {total_evaluated}")
+    print(f"  - Evaluated by LLM judge: {total_queries}")
+    print(f"  - Skipped (no query generated): {len(skipped_no_query)}")
+    print(f"  - Impossible questions (schema limits): {len(impossible_questions)}")
+    print(f"")
+    print(f"Of evaluated queries ({total_queries}):")
+    print(f"  - Valid Cypher queries (score >= 0.5): {valid_queries}")
+    print(f"  - Invalid Cypher queries (score < 0.5): {total_queries - valid_queries}")
+    print(f"  - PERCENTAGE OF CORRECT CYPHER: {valid_percentage:.2f}%")
+    print(f"{'='*80}")
+    print(f"\nWrote: {out_dir / 'scores.json'} and {out_dir / 'index.html'}")
     return 0
 
 

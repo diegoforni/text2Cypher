@@ -57,6 +57,10 @@ GEMINI_API_KEY = _strip_quotes(os.getenv("GEMINI_API_KEY"))
 _GEMINI_KEYS_RAW = os.getenv("GEMINI_API_KEYS", "").strip()
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1:8b-instruct-q4_0")
+# Allow selecting the OpenAI model via environment variable (defaults to gpt-5-nano)
+OPENAI_MODEL = _strip_quotes(os.getenv("OPENAI_MODEL", "gpt-5-nano"))
+# Optional: separate model for Cypher generation (defaults to OPENAI_MODEL if not set)
+OPENAI_GENERATION_MODEL = _strip_quotes(os.getenv("OPENAI_GENERATION_MODEL", ""))
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
@@ -116,15 +120,39 @@ def get_llm() -> Optional[object]:
     or multiple keys via GEMINI_API_KEYS (round-robin, no back-to-back reuse).
     """
     if MODEL_PROVIDER == "openai" and OPENAI_API_KEY:
-        # Include reasoning controls for GPT models on every call
-        return ChatOpenAI(
-            api_key=OPENAI_API_KEY,
-            temperature=0,
-            model='gpt-5-nano',
-            model_kwargs={
-                "reasoning": {"effort": "minimal"},
-            },
-        )
+        # Models that support reasoning parameter (o-series and gpt-5 series, codex)
+        reasoning_models = ["o1", "o3", "o4", "gpt-5", "codex"]
+        supports_reasoning = any(rm in OPENAI_MODEL.lower() for rm in reasoning_models)
+        
+        # Models that do NOT support temperature parameter (o-series reasoning models, codex)
+        no_temperature_models = ["o1", "o3", "o4", "codex"]
+        supports_temperature = not any(nt in OPENAI_MODEL.lower() for nt in no_temperature_models)
+        
+        if supports_reasoning:
+            if supports_temperature:
+                return ChatOpenAI(
+                    api_key=OPENAI_API_KEY,
+                    temperature=0,
+                    model=OPENAI_MODEL,
+                    model_kwargs={
+                        "reasoning": {"effort": "medium"},
+                    },
+                )
+            else:
+                # No temperature for o-series and codex models
+                return ChatOpenAI(
+                    api_key=OPENAI_API_KEY,
+                    model=OPENAI_MODEL,
+                    model_kwargs={
+                        "reasoning": {"effort": "medium"},
+                    },
+                )
+        else:
+            return ChatOpenAI(
+                api_key=OPENAI_API_KEY,
+                temperature=0,
+                model=OPENAI_MODEL,
+            )
     if MODEL_PROVIDER == "gemini" and ChatGoogleGenerativeAI:
         # Prefer multiple-key rotation when provided
         keys: List[str] = _GEMINI_KEYS[:] if _GEMINI_KEYS else ([GEMINI_API_KEY] if GEMINI_API_KEY else [])
@@ -136,6 +164,55 @@ def get_llm() -> Optional[object]:
         return _RoundRobinGeminiLLM(keys, model="gemini-2.5-flash")
     if MODEL_PROVIDER == "ollama":
         return _ChatOllamaCompat(OLLAMA_HOST, OLLAMA_MODEL, temperature=0)
+    return None
+
+
+def get_generation_llm() -> Optional[object]:
+    """Return a chat model instance specifically for Cypher generation.
+    
+    Uses OPENAI_GENERATION_MODEL if set, otherwise falls back to get_llm().
+    This allows using a different (potentially more capable) model for
+    the actual Cypher generation step while using a faster/cheaper model
+    for other agents like expansion and decomposition.
+    """
+    if not OPENAI_GENERATION_MODEL:
+        return None  # Caller should use get_llm() instead
+    
+    if MODEL_PROVIDER == "openai" and OPENAI_API_KEY:
+        gen_model = OPENAI_GENERATION_MODEL
+        # Models that support reasoning parameter (o-series and gpt-5 series, codex)
+        reasoning_models = ["o1", "o3", "o4", "gpt-5", "codex"]
+        supports_reasoning = any(rm in gen_model.lower() for rm in reasoning_models)
+        
+        # Models that do NOT support temperature parameter (o-series reasoning models, codex)
+        no_temperature_models = ["o1", "o3", "o4", "codex"]
+        supports_temperature = not any(nt in gen_model.lower() for nt in no_temperature_models)
+        
+        if supports_reasoning:
+            if supports_temperature:
+                return ChatOpenAI(
+                    api_key=OPENAI_API_KEY,
+                    temperature=0,
+                    model=gen_model,
+                    model_kwargs={
+                        "reasoning": {"effort": "medium"},
+                    },
+                )
+            else:
+                # No temperature for o-series and codex models
+                return ChatOpenAI(
+                    api_key=OPENAI_API_KEY,
+                    model=gen_model,
+                    model_kwargs={
+                        "reasoning": {"effort": "medium"},
+                    },
+                )
+        else:
+            return ChatOpenAI(
+                api_key=OPENAI_API_KEY,
+                temperature=0,
+                model=gen_model,
+            )
     return None
 
 

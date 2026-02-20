@@ -1,0 +1,1145 @@
+{
+  "summary": {
+    "total_queries": 15,
+    "run_duration_seconds": 1740.07622,
+    "model": "gpt-5.2",
+    "provider": "openai",
+    "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+    "started_at": "2026-02-20T12:09:54.257063+00:00",
+    "ended_at": "2026-02-20T12:38:54.333283+00:00",
+    "status_breakdown": {
+      "ERROR": 15
+    },
+    "error_types": {
+      "OTHER": 11,
+      "EMPTY_QUERY": 4
+    },
+    "total_tokens": 44635,
+    "total_duration_seconds": 1740.026,
+    "success_rate": 0.0
+  },
+  "results": [
+    {
+      "index": 1,
+      "category": "simple",
+      "prompt": "What is the attack technique most used overall?",
+      "expected_cypher": "MATCH (:IP)-[a:ATTACKS]->(:Country)\nWITH a.technique AS technique, count(*) AS attacks\nORDER BY attacks DESC\nLIMIT 1\nRETURN technique, attacks",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1287,
+        "output": 830,
+        "total": 2117
+      },
+      "duration_seconds": 76.055,
+      "started_at": "2026-02-20T12:09:54.259038+00:00",
+      "ended_at": "2026-02-20T12:11:10.314283+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:11:10.292321+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 2,
+      "category": "matcher-needed",
+      "prompt": "From all the IPs that have attacked using phishing, which other techniques do they use for other attacks and how often (in percentage)?",
+      "expected_cypher": "MATCH (ip:IP)-[a:ATTACKS]->(:Country)\nWITH ip, collect(toLower(a.technique)) AS allTechs\nWHERE any(t IN allTechs WHERE t CONTAINS 'phishing')\nMATCH (ip)-[a2:ATTACKS]->(:Country)\nWHERE NOT toLower(a2.technique) CONTAINS 'phishing'\nWITH a2.technique AS technique, count(*) AS cnt\nWITH collect({technique: technique, cnt: cnt}) AS rows, sum(cnt) AS total\nUNWIND rows AS r\nRETURN r.technique AS technique, r.cnt AS attacks, toFloat(r.cnt) / total * 100.0 AS percentage\nORDER BY percentage DESC",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1351,
+        "output": 1358,
+        "total": 2709
+      },
+      "duration_seconds": 90.423,
+      "started_at": "2026-02-20T12:11:10.315113+00:00",
+      "ended_at": "2026-02-20T12:12:40.737629+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:12:40.723556+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 3,
+      "category": "complex",
+      "prompt": "Detect attack rings: different ASNs that attacked the same country, with the same protocol, technique, and industry within the same calendar month.",
+      "expected_cypher": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN), (ip)-[a:ATTACKS]->(c:Country)\nWITH c.name AS country, a.protocol AS protocol, a.technique AS technique, a.industry AS industry, substring(toString(a.documented_create_date[0]),0,7) AS year_month, asn.number AS asn\nWITH country, protocol, technique, industry, year_month, collect(DISTINCT asn) AS asns, count(*) AS attacks\nWHERE size(asns) > 1\nRETURN country, protocol, technique, industry, year_month, asns, size(asns) AS asn_count\nORDER BY asn_count DESC, attacks DESC",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1448,
+        "output": 1631,
+        "total": 3079
+      },
+      "duration_seconds": 92.388,
+      "started_at": "2026-02-20T12:12:40.738167+00:00",
+      "ended_at": "2026-02-20T12:14:13.126173+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:14:13.113450+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 4,
+      "category": "decomposable",
+      "prompt": "Report from all IPs attacking from China: total number of distinct attacking IPs, top 5 countries attacked by number of attacks, and top 3 most common attack technique overall.",
+      "expected_cypher": "CALL {\n    MATCH (ip:IP)-[:FROM]->(country:Country)\n    WHERE country.name = 'China'\n    MATCH (ip)-[:ATTACKS]->(:Country)\n    RETURN count(DISTINCT ip) AS chinaAttackingIPCount\n}\nCALL {\n    MATCH (ip:IP)-[:FROM]->(originCountry:Country)\n    WHERE originCountry.name = 'China'\n    MATCH (ip)-[:ATTACKS]->(targetCountry:Country)\n    WITH targetCountry.name AS countryName, count(DISTINCT ip) AS attackCount\n    ORDER BY attackCount DESC\n    LIMIT 5\n    RETURN collect({countryName: countryName, attackCount: attackCount}) AS top5AttackedCountries\n}\nCALL {\n    MATCH (ip:IP)-[:FROM]->(c:Country {name: 'China'})\n    MATCH (ip)-[a:ATTACKS]->()\n    WITH a.technique AS technique, count(a.technique) AS count\n    ORDER BY count DESC\n    LIMIT 3\n    RETURN collect(technique) AS top3Techniques\n}\nRETURN chinaAttackingIPCount, top5AttackedCountries, top3Techniques",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1465,
+        "output": 1747,
+        "total": 3212
+      },
+      "duration_seconds": 92.16,
+      "started_at": "2026-02-20T12:14:13.126757+00:00",
+      "ended_at": "2026-02-20T12:15:45.286563+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:15:45.274163+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 5,
+      "category": "multi-subquery",
+      "prompt": "For IPs from Russia: count distinct IPs, count total attacks, and list top 5 industries targeted.",
+      "expected_cypher": "CALL {\n  MATCH (ip:IP)-[:FROM]->(src:Country {name:'Russia'})\n  RETURN count(DISTINCT ip) AS distinctIPs\n}\nCALL {\n  MATCH (ip:IP)-[:FROM]->(src:Country {name:'Russia'})\n  MATCH (ip)-[:ATTACKS]->(:Country)\n  RETURN count(*) AS totalAttacks\n}\nCALL {\n  MATCH (ip:IP)-[:FROM]->(src:Country {name:'Russia'})\n  MATCH (ip)-[a:ATTACKS]->(:Country)\n  WITH a.industry AS industry, count(*) AS attacks\n  ORDER BY attacks DESC\n  LIMIT 5\n  RETURN collect({industry: industry, attacks: attacks}) AS topIndustries\n}\nRETURN distinctIPs, totalAttacks, topIndustries",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1311,
+        "output": 868,
+        "total": 2179
+      },
+      "duration_seconds": 76.523,
+      "started_at": "2026-02-20T12:15:45.287044+00:00",
+      "ended_at": "2026-02-20T12:17:01.810057+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:17:01.796947+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 6,
+      "category": "aggregation",
+      "prompt": "Which ASN has attacked the most distinct countries?",
+      "expected_cypher": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN), (ip)-[:ATTACKS]->(c:Country)\nWITH asn.number AS asn, count(DISTINCT c.name) AS countries\nORDER BY countries DESC\nLIMIT 1\nRETURN asn, countries",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Empty query",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "EMPTY_QUERY",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with EMPTY_QUERY"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify which Autonomous System Number (ASN) is associated with source IPs that have attacked the widest range of distinct target countries, i.e., the ASN with the maximum number of unique victim countries in the attack data.\",\n  \"KEY_ENTITIES\": {\n    \"NODES\": [\n      \"(:ASN {number})\",\n      \"(:IP {address, botnet, pulse_ids})\",\n      \"(:Country {name})\"\n    ],\n    \"RELATIONSHIPS\": [\n      \"(ip:IP)-[:BELONGS_TO]->(asn:ASN)\",\n      \"(ip:IP)-[:ATTACKS {technique, protocol, technology, industry, pulse_id, documented_create_date, documented_modified_date}]->(country:Country)\"\n    ],\n    \"NOTES\": \"The target country is the Country node connected via ATTACKS (victim/attacked country). The optional relationships (ip)-[:FROM]->(country) describe the IP\u2019s origin country and are not required for determining attacked countries per ASN.\"\n  },\n  \"FILTERS\": {\n    \"REQUIRED\": [\n      \"Only consider countries reached via ATTACKS relationships (distinct target countries).\",\n      \"Only consider IPs that can be linked to an ASN via BELONGS_TO.\"\n    ],\n    \"OPTIONAL_UNSPECIFIED\": [\n      \"No time-range restriction is provided; include all ATTACKS records unless a date filter is later specified.\",\n      \"No restriction by technique/protocol/industry/technology/botnet/pulse_id is specified; treat all as in-scope.\"\n    ],\n    \"DEDUPLICATION_RULE\": \"If multiple ATTACKS relationships exist from IPs in the same ASN to the same Country (even across different techniques/dates), count that Country only once for that ASN.\"\n  },\n  \"OUTPUT_FORMAT\": {\n    \"PRIMARY_RESULT\": \"Return the ASN number with the highest count of distinct attacked countries, along with that distinct-country count.\",\n    \"TIES\": \"If multiple ASNs share the same maximum count, return all tied ASNs with the same max count.\",\n    \"OPTIONAL_FIELDS\": [\n      \"List of attacked country names per top ASN (useful for validation/audit), if desired.\"\n    ],\n    \"SORTING\": \"Sort by distinct attacked-country count descending; for deterministic ordering among ties, sort by ASN number ascending.\"\n  },\n  \"SUGGESTED_APPROACH\": \"Link IPs to their ASN via BELONGS_TO, link those IPs to attacked Countries via ATTACKS, aggregate by ASN to count distinct Country nodes attacked, then select the ASN(s) with the maximum distinct-country count (optionally collect country names for the winner(s)).\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Find the ASN(s) whose member IPs have ATTACKS relationships to the largest number of distinct Country nodes, returning the ASN number and the distinct attacked-country count (including all ties for the maximum).\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Find the ASN(s) whose member IPs have ATTACKS relationships to the largest number of distinct Country nodes, returning the ASN number and the distinct attacked-country count (including all ties for the maximum)."
+          ]
+        },
+        "generation": {
+          "fragments": [],
+          "trace": [
+            {
+              "subproblem": "Find the ASN(s) whose member IPs have ATTACKS relationships to the largest number of distinct Country nodes, returning the ASN number and the distinct attacked-country count (including all ties for the maximum).",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[:ATTACKS]->(c:Country)\nWITH asn.number AS asn_number, count(DISTINCT c) AS attacked_country_count\nWITH max(attacked_country_count) AS max_attacked_country_count, collect({asn_number: asn_number, attacked_country_count: attacked_country_count}) AS rows\nUNWIND rows AS row\nWHERE row.attacked_country_count = max_attacked_country_count\nRETURN row.asn_number AS asn_number, row.attacked_country_count AS attacked_country_count\nORDER BY asn_number",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (asn:ASN)<-[:BELONGS_TO]-(ip:IP)-[:ATTACKS]->(country:Country)\nWITH asn, count(DISTINCT country) AS attacked_country_count\nWITH collect({asn_number: asn.number, cnt: attacked_country_count}) AS rows, max(attacked_country_count) AS maxCount\nUNWIND rows AS row\nWITH row\nWHERE row.cnt = maxCount\nRETURN row.asn_number AS asn_number, row.cnt AS attacked_country_count\nORDER BY asn_number",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (asn:ASN)<-[:BELONGS_TO]-(ip:IP)-[:ATTACKS]->(country:Country)\nWITH asn.number AS asn_number, count(DISTINCT country) AS attacked_country_count\nWITH collect({asn_number: asn_number, attacked_country_count: attacked_country_count}) AS rows, max(attacked_country_count) AS max_count\nUNWIND rows AS row\nWITH row, max_count\nWHERE row.attacked_country_count = max_count\nRETURN row.asn_number AS asn_number, row.attacked_country_count AS attacked_country_count\nORDER BY asn_number",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": ""
+        },
+        "final_validation": {
+          "trace": [
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            },
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            },
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            }
+          ],
+          "error": "Empty query",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 3275,
+        "output": 1832,
+        "total": 5107
+      },
+      "duration_seconds": 215.72,
+      "started_at": "2026-02-20T12:17:01.810572+00:00",
+      "ended_at": "2026-02-20T12:20:37.530238+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:20:37.509350+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 7,
+      "category": "graph-structure",
+      "prompt": "Find IPs that attacked more than 10 distinct countries.",
+      "expected_cypher": "MATCH (ip:IP)-[:ATTACKS]->(c:Country)\nWITH ip.address AS ip, count(DISTINCT c.name) AS countries\nWHERE countries > 10\nRETURN ip, countries\nORDER BY countries DESC",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Empty query",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "EMPTY_QUERY",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with EMPTY_QUERY"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify attacker IP addresses that have targeted a broad geographic spread by attacking more than 10 unique destination countries, indicating potentially large-scale or globally distributed malicious activity.\",\n  \"KEY_ENTITIES\": {\n    \"NODES\": [\n      \"IP (address, botnet, pulse_ids)\",\n      \"Country (name)\",\n      \"ASN (number)\"\n    ],\n    \"RELATIONSHIPS\": [\n      \"(:IP)-[:ATTACKS {technique, protocol, technology, industry, pulse_id, documented_create_date, documented_modified_date}]->(:Country)\",\n      \"(:IP)-[:FROM]->(:Country)\",\n      \"(:IP)-[:BELONGS_TO]->(:ASN)\"\n    ],\n    \"PRIMARY_FOCUS\": \"Use ATTACKS edges to count distinct attacked Country nodes per IP; optionally enrich with FROM (source country) and BELONGS_TO (ASN) for context.\"\n  },\n  \"FILTERS\": [\n    \"Count of distinct attacked countries per IP must be > 10 (distinct by Country node/name, not by number of ATTACKS relationships).\"\n  ],\n  \"OUTPUT_FORMAT\": {\n    \"STRUCTURE\": \"One row/object per IP that meets the threshold\",\n    \"FIELDS\": [\n      \"ip_address\",\n      \"distinct_attacked_country_count\",\n      \"attacked_countries (list of country names, optional but useful for validation)\",\n      \"asn_number (optional enrichment)\",\n      \"source_country (optional enrichment via FROM)\",\n      \"botnet (optional enrichment)\",\n      \"pulse_ids and/or distinct pulse_id count from ATTACKS (optional enrichment)\"\n    ],\n    \"ORDERING\": \"Sort by distinct_attacked_country_count descending, then ip_address ascending\",\n    \"LIMIT\": \"No explicit limit unless requested; optionally cap to top N for readability\"\n  },\n  \"SUGGESTED_APPROACH\": \"Traverse from IP nodes to Country nodes via ATTACKS relationships, aggregate per IP to compute the number of distinct destination countries attacked, filter to those with counts greater than 10, and return the IP address with the count and optional contextual attributes (botnet, ASN, source country, and/or associated pulse identifiers).\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Return each IP address that has ATTACKS relationships to more than 10 distinct Country nodes, along with the distinct country count (and optionally the list of attacked countries plus ASN/source-country/botnet context).\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Return each IP address that has ATTACKS relationships to more than 10 distinct Country nodes, along with the distinct country count (and optionally the list of attacked countries plus ASN/source-country/botnet context)."
+          ]
+        },
+        "generation": {
+          "fragments": [],
+          "trace": [
+            {
+              "subproblem": "Return each IP address that has ATTACKS relationships to more than 10 distinct Country nodes, along with the distinct country count (and optionally the list of attacked countries plus ASN/source-country/botnet context).",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(c:Country)\nWITH ip, count(DISTINCT c) AS distinct_country_count, collect(DISTINCT c.name) AS attacked_countries\nWHERE distinct_country_count > 10\nOPTIONAL MATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nOPTIONAL MATCH (ip)-[:FROM]->(src:Country)\nRETURN\n  ip.address AS ip_address,\n  distinct_country_count,\n  attacked_countries,\n  asn.number AS asn_number,\n  src.name AS source_country,\n  ip.botnet AS botnet\nORDER BY distinct_country_count DESC, ip_address ASC",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(attacked:Country)\nWITH ip, count(DISTINCT attacked) AS distinct_country_count, collect(DISTINCT attacked.name) AS attacked_countries\nWHERE distinct_country_count > 10\nOPTIONAL MATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nOPTIONAL MATCH (ip)-[:FROM]->(src:Country)\nRETURN\n  ip.address AS ip_address,\n  distinct_country_count,\n  attacked_countries,\n  asn.number AS asn_number,\n  src.name AS source_country,\n  ip.botnet AS botnet\nORDER BY distinct_country_count DESC, ip_address",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(attacked:Country)\nWITH ip, count(DISTINCT attacked) AS distinct_country_count, collect(DISTINCT attacked.name) AS attacked_countries\nWHERE distinct_country_count > 10\nOPTIONAL MATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nOPTIONAL MATCH (ip)-[:FROM]->(source:Country)\nRETURN\n  ip.address AS ip_address,\n  distinct_country_count,\n  attacked_countries,\n  asn.number AS asn_number,\n  source.name AS source_country,\n  ip.botnet AS botnet\nORDER BY distinct_country_count DESC, ip_address",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": ""
+        },
+        "final_validation": {
+          "trace": [
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            },
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            },
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            }
+          ],
+          "error": "Empty query",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 3319,
+        "output": 1190,
+        "total": 4509
+      },
+      "duration_seconds": 204.877,
+      "started_at": "2026-02-20T12:20:37.530871+00:00",
+      "ended_at": "2026-02-20T12:24:02.407854+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:24:02.391458+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 8,
+      "category": "matcher-needed",
+      "prompt": "Top 5 target countries attacked by IPs from United States using protocol ssh.",
+      "expected_cypher": "MATCH (ip:IP)-[:FROM]->(src:Country {name:'United States of America'})\nMATCH (ip)-[a:ATTACKS {protocol:'RDP'}]->(tgt:Country)\nWITH tgt.name AS country, count(*) AS attacks\nORDER BY attacks DESC\nLIMIT 5\nRETURN country, attacks",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1239,
+        "output": 823,
+        "total": 2062
+      },
+      "duration_seconds": 79.024,
+      "started_at": "2026-02-20T12:24:02.408457+00:00",
+      "ended_at": "2026-02-20T12:25:21.432601+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:25:21.416449+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 9,
+      "category": "temporal",
+      "prompt": "Monthly attack counts per technique (grouped by YYYY-MM).",
+      "expected_cypher": "MATCH (:IP)-[a:ATTACKS]->(:Country)\nWITH substring(toString(a.documented_create_date[0]),0,7) AS year_month, a.technique AS technique, count(*) AS attacks\nRETURN year_month, technique, attacks\nORDER BY year_month DESC, attacks DESC",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Empty query",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "EMPTY_QUERY",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with EMPTY_QUERY"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Determine how many attacks were recorded each month for each attack technique, by aggregating ATTACKS events into calendar months (YYYY-MM) and counting occurrences per technique per month to understand temporal trends and technique prevalence over time.\",\n  \"KEY_ENTITIES\": {\n    \"NODES\": [\n      \"(:IP {address, botnet, pulse_ids})\",\n      \"(:Country {name})\"\n    ],\n    \"RELATIONSHIPS\": [\n      \"(ip:IP)-[:ATTACKS {technique, protocol, technology, industry, pulse_id, documented_create_date, documented_modified_date}]->(country:Country)\"\n    ],\n    \"NOT_PRIMARY_BUT_AVAILABLE_CONTEXT\": [\n      \"(ip:IP)-[:FROM]->(country:Country) (not required for counting ATTACKS unless origin-vs-target is explicitly needed)\",\n      \"(ip:IP)-[:BELONGS_TO]->(asn:ASN) (not required unless results should be segmented by ASN)\"\n    ]\n  },\n  \"FILTERS\": {\n    \"DATE_FIELD_TO_USE\": \"Use ATTACKS.documented_create_date as the event timestamp for monthly grouping; if it is missing or not representative, fall back to documented_modified_date (but prefer a single consistent field for aggregation).\",\n    \"DATE_RANGE\": \"Not specified; include all available dates unless a start/end range is provided.\",\n    \"TECHNIQUE\": \"Not specified; include all techniques. Optionally exclude null/empty technique values if present to avoid ambiguous buckets.\",\n    \"OTHER_PROPERTIES\": \"No filters requested on protocol, technology, industry, botnet, pulse_id, country, or ASN.\"\n  },\n  \"OUTPUT_FORMAT\": {\n    \"TYPE\": \"Tabular / row-based aggregation\",\n    \"COLUMNS\": [\n      \"month (YYYY-MM)\",\n      \"technique\",\n      \"attack_count\"\n    ],\n    \"ORDERING\": \"Sort by month ascending, then attack_count descending (or technique ascending if stable alphabetical ordering is preferred).\"\n  },\n  \"SUGGESTED_APPROACH\": \"Traverse all ATTACKS relationships, extract the chosen timestamp (prefer documented_create_date), normalize it to a year-month string (YYYY-MM), group records by (year-month, technique), count the number of ATTACKS in each group, and return the grouped counts in a sorted list for trend analysis.\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Count ATTACKS relationships grouped by technique and by month (YYYY-MM) derived from documented_create_date, returning month, technique, and attack_count sorted chronologically.\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Count ATTACKS relationships grouped by technique and by month (YYYY-MM) derived from documented_create_date, returning month, technique, and attack_count sorted chronologically."
+          ]
+        },
+        "generation": {
+          "fragments": [],
+          "trace": [
+            {
+              "subproblem": "Count ATTACKS relationships grouped by technique and by month (YYYY-MM) derived from documented_create_date, returning month, technique, and attack_count sorted chronologically.",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[a:ATTACKS]->(c:Country)\nWITH date.truncate('month', a.documented_create_date) AS year_month, a.technique AS technique, count(*) AS attack_count\nRETURN year_month, technique, attack_count\nORDER BY year_month ASC, technique ASC",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(country:Country)\nWITH date.truncate('month', r.documented_create_date) AS year_month, r.technique AS technique, count(*) AS attack_count\nRETURN year_month, technique, attack_count\nORDER BY year_month ASC, technique ASC",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (ip:IP)-[a:ATTACKS]->(country:Country)\nWITH date.truncate('month', a.documented_create_date) AS year_month, a.technique AS technique, count(*) AS attack_count\nRETURN year_month, technique, attack_count\nORDER BY year_month ASC, technique ASC",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": ""
+        },
+        "final_validation": {
+          "trace": [
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            },
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            },
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            }
+          ],
+          "error": "Empty query",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 3076,
+        "output": 971,
+        "total": 4047
+      },
+      "duration_seconds": 201.409,
+      "started_at": "2026-02-20T12:25:21.474253+00:00",
+      "ended_at": "2026-02-20T12:28:42.883128+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:28:42.862815+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 10,
+      "category": "discovery",
+      "prompt": "List distinct technologies observed in attacks against the Finance industry, with counts.",
+      "expected_cypher": "MATCH (:IP)-[a:ATTACKS]->(:Country)\nWHERE a.industry = 'Finance'\nWITH a.technology AS technology, count(*) AS attacks\nORDER BY attacks DESC\nRETURN technology, attacks",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1231,
+        "output": 561,
+        "total": 1792
+      },
+      "duration_seconds": 73.636,
+      "started_at": "2026-02-20T12:28:42.883643+00:00",
+      "ended_at": "2026-02-20T12:29:56.519273+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:29:56.494977+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 11,
+      "category": "multi-hop",
+      "prompt": "For each ASN, top 3 protocols it used when attacking France.",
+      "expected_cypher": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[a:ATTACKS]->(c:Country {name:'France'})\nWITH asn.number AS asn, a.protocol AS protocol, count(*) AS cnt\nORDER BY asn, cnt DESC\nWITH asn, collect({protocol: protocol, cnt: cnt}) AS items\nUNWIND items[0..3] AS top\nRETURN asn, top.protocol AS protocol, top.cnt AS attacks\nORDER BY asn, attacks DESC",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1279,
+        "output": 708,
+        "total": 1987
+      },
+      "duration_seconds": 76.632,
+      "started_at": "2026-02-20T12:29:56.519867+00:00",
+      "ended_at": "2026-02-20T12:31:13.151499+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:31:13.139294+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 12,
+      "category": "impossible",
+      "prompt": "List the top 5 malware families used in attacks.",
+      "expected_cypher": "RETURN 'Not enough information in schema (no malware family)' AS note",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1256,
+        "output": 779,
+        "total": 2035
+      },
+      "duration_seconds": 76.314,
+      "started_at": "2026-02-20T12:31:13.152049+00:00",
+      "ended_at": "2026-02-20T12:32:29.466521+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:32:29.453995+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 13,
+      "category": "impossible",
+      "prompt": "What destination ports are most targeted?",
+      "expected_cypher": "RETURN 'Not enough information in schema (no destination port)' AS note",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Empty query",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "EMPTY_QUERY",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with EMPTY_QUERY"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify which destination service ports are being targeted most frequently in the observed attack activity, i.e., rank destination ports by volume of attack events (and optionally understand the associated protocols/attack context).\",\n  \"KEY_ENTITIES\": \"Primary: (ip:IP)-[r:ATTACKS]->(country:Country), where the ATTACKS relationship represents an attack event and should contain (or be linkable to) the destination port attribute. Supporting context (optional for segmentation): (ip:IP)-[:FROM]->(country:Country) to distinguish source geography from targeted geography, and (ip:IP)-[:BELONGS_TO]->(asn:ASN) to attribute activity to source network/ASN. Relevant properties: IP.address, IP.botnet, IP.pulse_ids; ATTACKS.protocol, ATTACKS.technique, ATTACKS.technology, ATTACKS.industry, ATTACKS.pulse_id, ATTACKS.documented_create_date, ATTACKS.documented_modified_date; Country.name; ASN.number.\",\n  \"FILTERS\": \"No explicit constraints were provided; compute over the full dataset by default. However, the question depends on a destination port value\u2014this is not explicitly present in the provided schema. If destination port is stored under a different name (e.g., r.destination_port, r.dst_port, r.port) or encoded within r.protocol, that field must be selected as the port dimension. Optional/common filters to consider if the user wants narrower results: time window based on documented_create_date/modified_date; limit to botnet=true IPs; restrict to specific technique/protocol/technology/industry; restrict to a specific target country (the ATTACKS -> Country) or source country (FROM); restrict to specific ASN(s); restrict to a specific pulse_id/pulse_ids set.\",\n  \"OUTPUT_FORMAT\": \"Return a ranked list/table of destination ports with the total number of ATTACKS events targeting each port, sorted descending. Include for each row: destination_port, attack_count, and (optionally) protocol as a secondary grouping or a breakdown if multiple protocols map to the same port. Provide top N (e.g., top 10/20) unless otherwise specified.\",\n  \"SUGGESTED_APPROACH\": \"Treat each ATTACKS relationship as one attack observation. Identify the relationship property that represents the destination port (or derive it if the dataset encodes it in another field). Aggregate attack observations by destination port, counting occurrences. Sort by count descending and return the highest-frequency ports. If desired, add optional breakdowns (by targeted country, source country, ASN, botnet flag, technique, or time window) while keeping the primary ranking by port.\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Rank destination ports by the number of ATTACKS relationships targeting them (using the correct ATTACKS property that stores destination port), returning the ports and their attack counts sorted from most to least targeted.\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Rank destination ports by the number of ATTACKS relationships targeting them (using the correct ATTACKS property that stores destination port), returning the ports and their attack counts sorted from most to least targeted."
+          ]
+        },
+        "generation": {
+          "fragments": [],
+          "trace": [
+            {
+              "subproblem": "Rank destination ports by the number of ATTACKS relationships targeting them (using the correct ATTACKS property that stores destination port), returning the ports and their attack counts sorted from most to least targeted.",
+              "attempts": [
+                {
+                  "fragment": "MATCH ()-[r:ATTACKS]->()\nWHERE r.destination_port IS NOT NULL\nWITH r.destination_port AS port, count(*) AS attack_count\nRETURN port, attack_count\nORDER BY attack_count DESC",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(country:Country)\nWHERE r.destination_port IS NOT NULL\nWITH r.destination_port AS port, count(*) AS attack_count\nRETURN port, attack_count\nORDER BY attack_count DESC, port ASC",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (:IP)-[r:ATTACKS]->(:Country)\nWHERE r.destination_port IS NOT NULL\nWITH r.destination_port AS destination_port, count(*) AS attack_count\nRETURN destination_port, attack_count\nORDER BY attack_count DESC, destination_port ASC",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": ""
+        },
+        "final_validation": {
+          "trace": [
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            },
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            },
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            }
+          ],
+          "error": "Empty query",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 3047,
+        "output": 1892,
+        "total": 4939
+      },
+      "duration_seconds": 219.98,
+      "started_at": "2026-02-20T12:32:29.467115+00:00",
+      "ended_at": "2026-02-20T12:36:09.447043+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:36:09.434517+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 14,
+      "category": "matcher-needed",
+      "prompt": "How many attacks used technique ' Phishing' against Australia?",
+      "expected_cypher": "MATCH (:IP)-[a:ATTACKS {technique:'T1566 Phishing'}]->(:Country {name:'Australia'})\nRETURN count(a) AS attacks",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1214,
+        "output": 702,
+        "total": 1916
+      },
+      "duration_seconds": 76.149,
+      "started_at": "2026-02-20T12:36:09.447599+00:00",
+      "ended_at": "2026-02-20T12:37:25.596170+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:37:25.574389+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 15,
+      "category": "complex",
+      "prompt": "Identify pairs of ASNs that both attacked the same country using the same technique within the same month; return top 10 pairs by co-attack count.",
+      "expected_cypher": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[a:ATTACKS]->(c:Country)\nWITH c.name AS country, a.technique AS technique, substring(toString(a.documented_create_date[0]),0,7) AS year_month, asn.number AS asn\nWITH country, technique, year_month, collect(DISTINCT asn)[0..50] AS asns\nUNWIND range(0, size(asns)-2) AS i\nUNWIND range(i+1, size(asns)-1) AS j\nWITH asns[i] AS asnA, asns[j] AS asnB, country, technique, year_month\nRETURN asnA, asnB, country, technique, year_month, count(*) AS co_attacks\nORDER BY co_attacks DESC\nLIMIT 10",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1443,
+        "output": 1502,
+        "total": 2945
+      },
+      "duration_seconds": 88.736,
+      "started_at": "2026-02-20T12:37:25.596714+00:00",
+      "ended_at": "2026-02-20T12:38:54.332593+00:00",
+      "metadata": {
+        "time": "2026-02-20T12:38:54.318035+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    }
+  ]
+}

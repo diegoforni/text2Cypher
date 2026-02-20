@@ -1,0 +1,5194 @@
+{
+  "summary": {
+    "total_queries": 15,
+    "run_duration_seconds": 3087.530291,
+    "model": "gpt-5.2",
+    "provider": "openai",
+    "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+    "started_at": "2026-02-20T06:07:52.532645+00:00",
+    "ended_at": "2026-02-20T06:59:20.062936+00:00",
+    "status_breakdown": {
+      "SUCCESS": 9,
+      "ERROR": 4,
+      "SUCCESS_ZERO_ROWS": 2
+    },
+    "error_types": {
+      "OTHER": 4
+    },
+    "total_tokens": 46241,
+    "total_duration_seconds": 3087.485999999999,
+    "success_rate": 60.0
+  },
+  "results": [
+    {
+      "index": 1,
+      "category": "simple",
+      "prompt": "What is the attack technique most used overall?",
+      "expected_cypher": "MATCH (:IP)-[a:ATTACKS]->(:Country)\nWITH a.technique AS technique, count(*) AS attacks\nORDER BY attacks DESC\nLIMIT 1\nRETURN technique, attacks",
+      "agent_cypher": "MATCH (:IP)-[r:ATTACKS]->(:Country)\nWITH r.technique AS technique, count(*) AS attack_count\nORDER BY attack_count DESC\nWITH collect({technique: technique, attack_count: attack_count}) AS rows\nWITH rows, rows[0].attack_count AS max_count\nUNWIND rows AS row\nWITH row\nWHERE row.attack_count = max_count\nRETURN row.technique AS technique, row.attack_count AS attack_count",
+      "response": [
+        {
+          "technique": "T1566 Phishing",
+          "attack_count": 2863569
+        }
+      ],
+      "error": null,
+      "analysis": {
+        "has_query": true,
+        "query_length": 367,
+        "has_error": false,
+        "error_type": "NONE",
+        "has_results": true,
+        "result_type": "list",
+        "result_count": 1,
+        "status": "SUCCESS",
+        "status_detail": "Query executed successfully and returned 1 rows"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify which attack technique is used most frequently across all recorded attack events in the dataset, regardless of source IP, destination country, ASN, protocol, or time period.\",\n  \"KEY_ENTITIES\": \"Primary: (:IP)-[:ATTACKS]->(:Country), using the relationship property ATTACKS.technique as the value to aggregate. Secondary (not required for the core question but available for segmentation if needed): (:IP)-[:FROM]->(:Country) for source geography and (:IP)-[:BELONGS_TO]->(:ASN) for source network ownership.\",\n  \"FILTERS\": \"No explicit filters are provided. Implicit conditions: consider all ATTACKS relationships in the graph; exclude records where ATTACKS.technique is null/empty if such values exist (or treat them as 'unknown' if you prefer to keep them). No time-window constraint is specified, so include all documented_create_date/documented_modified_date values.\",\n  \"OUTPUT_FORMAT\": \"Return the single most-used technique overall with its total count of occurrences (number of ATTACKS relationships having that technique). If multiple techniques tie for first, return all tied techniques along with the shared top count, or apply a deterministic tie-break rule (e.g., alphabetical) and return one\u2014choose and state which behavior is used.\",\n  \"SUGGESTED_APPROACH\": \"Scan all ATTACKS relationships, read the technique property, normalize/clean it if necessary (e.g., trim whitespace, consistent casing), group attack events by technique, count occurrences per technique, then sort descending by count and select the top result(s).\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Aggregate all IP-to-Country ATTACKS relationships by the relationship property technique, count occurrences per technique across the entire dataset, and return the technique(s) with the highest count (and the count).\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Aggregate all IP-to-Country ATTACKS relationships by the relationship property technique, count occurrences per technique across the entire dataset, and return the technique(s) with the highest count (and the count)."
+          ]
+        },
+        "generation": {
+          "fragments": [
+            "MATCH (:IP)-[r:ATTACKS]->(:Country)\nWITH r.technique AS technique, count(*) AS attack_count\nORDER BY attack_count DESC\nWITH collect({technique: technique, attack_count: attack_count}) AS rows\nWITH rows, rows[0].attack_count AS max_count\nUNWIND rows AS row\nWITH row\nWHERE row.attack_count = max_count\nRETURN row.technique AS technique, row.attack_count AS attack_count"
+          ],
+          "trace": [
+            {
+              "subproblem": "Aggregate all IP-to-Country ATTACKS relationships by the relationship property technique, count occurrences per technique across the entire dataset, and return the technique(s) with the highest count (and the count).",
+              "attempts": [
+                {
+                  "fragment": "MATCH (:IP)-[r:ATTACKS]->(:Country)\nWITH r.technique AS technique, count(*) AS attack_count\nORDER BY attack_count DESC\nWITH collect({technique: technique, attack_count: attack_count}) AS rows\nWITH rows, rows[0].attack_count AS max_count\nUNWIND rows AS row\nWITH row\nWHERE row.attack_count = max_count\nRETURN row.technique AS technique, row.attack_count AS attack_count",
+                  "matched_pairs": [],
+                  "ok": true,
+                  "error": null,
+                  "rows_preview": [
+                    {
+                      "technique": "T1566 Phishing",
+                      "attack_count": 2863569
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": "MATCH (:IP)-[r:ATTACKS]->(:Country)\nWITH r.technique AS technique, count(*) AS attack_count\nORDER BY attack_count DESC\nWITH collect({technique: technique, attack_count: attack_count}) AS rows\nWITH rows, rows[0].attack_count AS max_count\nUNWIND rows AS row\nWITH row\nWHERE row.attack_count = max_count\nRETURN row.technique AS technique, row.attack_count AS attack_count"
+        },
+        "final_validation": {
+          "trace": null,
+          "error": null,
+          "results_preview": [
+            {
+              "technique": "T1566 Phishing",
+              "attack_count": 2863569
+            }
+          ]
+        },
+        "explanation": {
+          "text": "It finds the ATTACKS technique(s) used most often across all IP\u2192Country ATTACKS relationships and returns the technique name(s) tied for the highest attack count along with that count."
+        }
+      },
+      "token_usage": {
+        "input": 1497,
+        "output": 640,
+        "total": 2137
+      },
+      "duration_seconds": 362.847,
+      "started_at": "2026-02-20T06:07:52.534637+00:00",
+      "ended_at": "2026-02-20T06:13:55.381488+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:13:55.368824+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 2,
+      "category": "matcher-needed",
+      "prompt": "From all the IPs that have attacked using phishing, which other techniques do they use for other attacks and how often (in percentage)?",
+      "expected_cypher": "MATCH (ip:IP)-[a:ATTACKS]->(:Country)\nWITH ip, collect(toLower(a.technique)) AS allTechs\nWHERE any(t IN allTechs WHERE t CONTAINS 'phishing')\nMATCH (ip)-[a2:ATTACKS]->(:Country)\nWHERE NOT toLower(a2.technique) CONTAINS 'phishing'\nWITH a2.technique AS technique, count(*) AS cnt\nWITH collect({technique: technique, cnt: cnt}) AS rows, sum(cnt) AS total\nUNWIND rows AS r\nRETURN r.technique AS technique, r.cnt AS attacks, toFloat(r.cnt) / total * 100.0 AS percentage\nORDER BY percentage DESC",
+      "agent_cypher": "MATCH (ip:IP)-[a:ATTACKS]->(victim:Country)\nWITH ip, count(DISTINCT victim) AS distinct_victim_country_count, collect(DISTINCT victim.name) AS victim_countries\nWHERE distinct_victim_country_count > 10\nOPTIONAL MATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nOPTIONAL MATCH (ip)-[:FROM]->(origin:Country)\nRETURN\n  ip.address AS ip_address,\n  distinct_victim_country_count,\n  ip.botnet AS botnet,\n  asn.number AS asn_number,\n  origin.name AS origin_country,\n  victim_countries\nORDER BY distinct_victim_country_count DESC, ip_address ASC",
+      "response": null,
+      "error": "Timeout after 400 seconds",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Timeout after 400 seconds",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1609,
+        "output": 805,
+        "total": 2414
+      },
+      "duration_seconds": 400.088,
+      "started_at": "2026-02-20T06:13:55.382034+00:00",
+      "ended_at": "2026-02-20T06:20:35.469658+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:16:27.714760+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 3,
+      "category": "complex",
+      "prompt": "Detect attack rings: different ASNs that attacked the same country, with the same protocol, technique, and industry within the same calendar month.",
+      "expected_cypher": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN), (ip)-[a:ATTACKS]->(c:Country)\nWITH c.name AS country, a.protocol AS protocol, a.technique AS technique, a.industry AS industry, substring(toString(a.documented_create_date[0]),0,7) AS year_month, asn.number AS asn\nWITH country, protocol, technique, industry, year_month, collect(DISTINCT asn) AS asns, count(*) AS attacks\nWHERE size(asns) > 1\nRETURN country, protocol, technique, industry, year_month, asns, size(asns) AS asn_count\nORDER BY asn_count DESC, attacks DESC",
+      "agent_cypher": "MATCH (ip:IP)-[a:ATTACKS]->(c:Country)\nWITH date.truncate('month', a.documented_create_date) AS year_month, a.technique AS technique, count(*) AS attack_count\nRETURN year_month, technique, attack_count\nORDER BY year_month ASC, technique ASC",
+      "response": null,
+      "error": "Timeout after 400 seconds",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Timeout after 400 seconds",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1437,
+        "output": 942,
+        "total": 2379
+      },
+      "duration_seconds": 400.118,
+      "started_at": "2026-02-20T06:20:35.486386+00:00",
+      "ended_at": "2026-02-20T06:27:15.604025+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:25:46.280682+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 4,
+      "category": "decomposable",
+      "prompt": "Report from all IPs attacking from China: total number of distinct attacking IPs, top 5 countries attacked by number of attacks, and top 3 most common attack technique overall.",
+      "expected_cypher": "CALL {\n    MATCH (ip:IP)-[:FROM]->(country:Country)\n    WHERE country.name = 'China'\n    MATCH (ip)-[:ATTACKS]->(:Country)\n    RETURN count(DISTINCT ip) AS chinaAttackingIPCount\n}\nCALL {\n    MATCH (ip:IP)-[:FROM]->(originCountry:Country)\n    WHERE originCountry.name = 'China'\n    MATCH (ip)-[:ATTACKS]->(targetCountry:Country)\n    WITH targetCountry.name AS countryName, count(DISTINCT ip) AS attackCount\n    ORDER BY attackCount DESC\n    LIMIT 5\n    RETURN collect({countryName: countryName, attackCount: attackCount}) AS top5AttackedCountries\n}\nCALL {\n    MATCH (ip:IP)-[:FROM]->(c:Country {name: 'China'})\n    MATCH (ip)-[a:ATTACKS]->()\n    WITH a.technique AS technique, count(a.technique) AS count\n    ORDER BY count DESC\n    LIMIT 3\n    RETURN collect(technique) AS top3Techniques\n}\nRETURN chinaAttackingIPCount, top5AttackedCountries, top3Techniques",
+      "agent_cypher": "MATCH (ip:IP)-[:FROM]->(origin:Country {name: 'China'})\nWITH collect(DISTINCT ip) AS ips, count(DISTINCT ip) AS distinct_attacking_ips\nMATCH (ip)-[:ATTACKS]->(target:Country)\nWHERE ip IN ips\nWITH ips, distinct_attacking_ips, target.name AS target_country, count(*) AS attack_events\nORDER BY attack_events DESC, target_country ASC\nLIMIT 5\nWITH ips, distinct_attacking_ips, collect({country: target_country, attack_events: attack_events}) AS top_target_countries\nMATCH (ip)-[a:ATTACKS]->(:Country)\nWHERE ip IN ips AND a.technique <> 'unknown'\nWITH distinct_attacking_ips, top_target_countries, a.technique AS technique, count(*) AS attack_events\nORDER BY attack_events DESC, technique ASC\nLIMIT 3\nWITH distinct_attacking_ips, top_target_countries, collect({technique: technique, attack_events: attack_events}) AS top_techniques\nRETURN distinct_attacking_ips, top_target_countries, top_techniques",
+      "response": [
+        {
+          "distinct_attacking_ips": 2790,
+          "top_target_countries": [
+            {
+              "attack_events": 43430,
+              "country": "Germany"
+            },
+            {
+              "attack_events": 38573,
+              "country": "United States of America"
+            },
+            {
+              "attack_events": 36447,
+              "country": "France"
+            },
+            {
+              "attack_events": 36047,
+              "country": "Poland"
+            },
+            {
+              "attack_events": 35697,
+              "country": "Canada"
+            }
+          ],
+          "top_techniques": [
+            {
+              "technique": "T1566 Phishing",
+              "attack_events": 533403
+            },
+            {
+              "technique": "T1110 Brute Force",
+              "attack_events": 8224
+            },
+            {
+              "technique": "T1595 Active Scanning",
+              "attack_events": 7586
+            }
+          ]
+        }
+      ],
+      "error": null,
+      "analysis": {
+        "has_query": true,
+        "query_length": 893,
+        "has_error": false,
+        "error_type": "NONE",
+        "has_results": true,
+        "result_type": "list",
+        "result_count": 1,
+        "status": "SUCCESS",
+        "status_detail": "Query executed successfully and returned 1 rows"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify and summarize malicious activity originating from China by counting how many unique attacker IPs are involved, which destination countries are most targeted, and which attack techniques are most frequently used across all such attacks.\",\n  \"KEY_ENTITIES\": \"Relevant nodes: IP (attacker), Country (both origin and target), ASN (optional enrichment for attribution). Relevant relationships: IP-[:FROM]->Country (to determine the attacker origin country), IP-[:ATTACKS]->Country (to represent an attack event from an IP to a target country and carry properties like technique), IP-[:BELONGS_TO]->ASN (not required for the requested metrics but available for additional context or breakdowns). Key relationship properties used: ATTACKS.technique (for technique frequency); optionally ATTACKS.documented_create_date / documented_modified_date for time scoping if needed.\",\n  \"FILTERS\": \"Only include attacker IPs whose origin country is China (i.e., the Country connected via the FROM relationship has name = 'China'). Consider only ATTACKS relationships originating from those filtered IPs. No time range, protocol/technology/industry, botnet, ASN, or pulse_id constraints are specified; therefore include all attacks matching the origin filter. Clarification implied: 'number of attacks' should be interpreted as the count of ATTACKS relationships/events (not distinct victim countries), and 'distinct attacking IPs' should count unique IP.address values (or unique IP nodes if address is unique).\",\n  \"OUTPUT_FORMAT\": \"Return a single consolidated result containing: (1) total distinct attacker IP count (integer), (2) a ranked list of the top 5 attacked countries with their attack counts (each entry includes country name and count), and (3) a ranked list of the top 3 techniques with their usage counts across all included attacks (each entry includes technique and count).\",\n  \"SUGGESTED_APPROACH\": \"First, identify all IP nodes that originate from China via the FROM relationship. From this attacker set, traverse ATTACKS relationships to target Country nodes. Compute three aggregations over the same filtered attack set: (a) count distinct attacker IPs, (b) group by target country name and count attacks, sort descending and take top 5, and (c) group by attack technique and count occurrences, sort descending and take top 3. Package these aggregations into one combined response so they share the same filter logic.\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"From attacker IPs whose origin country is China, compute the number of distinct attacking IPs, the top 5 target countries by count of attack events, and the top 3 most frequent attack techniques across those events, returning the results as a single consolidated output.\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "From attacker IPs whose origin country is China, compute the number of distinct attacking IPs, the top 5 target countries by count of attack events, and the top 3 most frequent attack techniques across those events, returning the results as a single consolidated output."
+          ]
+        },
+        "generation": {
+          "fragments": [
+            "MATCH (ip:IP)-[:FROM]->(origin:Country {name: 'China'})\nWITH collect(DISTINCT ip) AS ips, count(DISTINCT ip) AS distinct_attacking_ips\nMATCH (ip)-[:ATTACKS]->(target:Country)\nWHERE ip IN ips\nWITH ips, distinct_attacking_ips, target.name AS target_country, count(*) AS attack_events\nORDER BY attack_events DESC, target_country ASC\nLIMIT 5\nWITH ips, distinct_attacking_ips, collect({country: target_country, attack_events: attack_events}) AS top_target_countries\nMATCH (ip)-[a:ATTACKS]->(:Country)\nWHERE ip IN ips AND a.technique <> 'unknown'\nWITH distinct_attacking_ips, top_target_countries, a.technique AS technique, count(*) AS attack_events\nORDER BY attack_events DESC, technique ASC\nLIMIT 3\nWITH distinct_attacking_ips, top_target_countries, collect({technique: technique, attack_events: attack_events}) AS top_techniques\nRETURN distinct_attacking_ips, top_target_countries, top_techniques"
+          ],
+          "trace": [
+            {
+              "subproblem": "From attacker IPs whose origin country is China, compute the number of distinct attacking IPs, the top 5 target countries by count of attack events, and the top 3 most frequent attack techniques across those events, returning the results as a single consolidated output.",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[:FROM]->(oc:Country {name: 'China'})\nMATCH (ip)-[a:ATTACKS]->(tc:Country)\nWITH collect(DISTINCT ip) AS ips,\n     collect({target: tc.name, technique: a.technique}) AS events\nWITH size(ips) AS distinct_attacking_ips, events\nUNWIND events AS e\nWITH distinct_attacking_ips, events, e.target AS target\nWITH distinct_attacking_ips, events, target, count(*) AS attack_event_count\nORDER BY attack_event_count DESC\nWITH distinct_attacking_ips, events, collect({country: target, attack_events: attack_event_count})[0..5] AS top_5_target_countries\nUNWIND events AS e2\nWITH distinct_attacking_ips, top_5_target_countries, e2.technique AS technique\nWHERE technique <> 'unknown'\nWITH distinct_attacking_ips, top_5_target_countries, technique, count(*) AS technique_count\nORDER BY technique_count DESC\nWITH distinct_attacking_ips, top_5_target_countries, collect({technique: technique, attack_events: technique_count})[0..3] AS top_3_techniques\nRETURN distinct_attacking_ips, top_5_target_countries, top_3_techniques",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "{neo4j_code: Neo.TransientError.General.MemoryPoolOutOfMemoryError} {message: The allocation of an extra 221.8 MiB would use more than the limit 716.8 MiB. Currently using 572.6 MiB. dbms.memory.transaction.total.max threshold reached} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.}",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (ip:IP)-[:FROM]->(origin:Country {name: 'China'})\nWITH collect(DISTINCT ip) AS ips, count(DISTINCT ip) AS distinct_attacking_ips\nMATCH (ip)-[:ATTACKS]->(target:Country)\nWHERE ip IN ips\nWITH ips, distinct_attacking_ips, target.name AS target_country, count(*) AS attack_events\nORDER BY attack_events DESC, target_country ASC\nLIMIT 5\nWITH ips, distinct_attacking_ips, collect({country: target_country, attack_events: attack_events}) AS top_target_countries\nMATCH (ip)-[a:ATTACKS]->(:Country)\nWHERE ip IN ips AND a.technique <> 'unknown'\nWITH distinct_attacking_ips, top_target_countries, a.technique AS technique, count(*) AS attack_events\nORDER BY attack_events DESC, technique ASC\nLIMIT 3\nWITH distinct_attacking_ips, top_target_countries, collect({technique: technique, attack_events: attack_events}) AS top_techniques\nRETURN distinct_attacking_ips, top_target_countries, top_techniques",
+                  "matched_pairs": [],
+                  "ok": true,
+                  "error": null,
+                  "rows_preview": [
+                    {
+                      "distinct_attacking_ips": 2790,
+                      "top_target_countries": [
+                        {
+                          "attack_events": 43430,
+                          "country": "Germany"
+                        },
+                        {
+                          "attack_events": 38573,
+                          "country": "United States of America"
+                        },
+                        {
+                          "attack_events": 36447,
+                          "country": "France"
+                        },
+                        {
+                          "attack_events": 36047,
+                          "country": "Poland"
+                        },
+                        {
+                          "attack_events": 35697,
+                          "country": "Canada"
+                        }
+                      ],
+                      "top_techniques": [
+                        {
+                          "technique": "T1566 Phishing",
+                          "attack_events": 533403
+                        },
+                        {
+                          "technique": "T1110 Brute Force",
+                          "attack_events": 8224
+                        },
+                        {
+                          "technique": "T1595 Active Scanning",
+                          "attack_events": 7586
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": "MATCH (ip:IP)-[:FROM]->(origin:Country {name: 'China'})\nWITH collect(DISTINCT ip) AS ips, count(DISTINCT ip) AS distinct_attacking_ips\nMATCH (ip)-[:ATTACKS]->(target:Country)\nWHERE ip IN ips\nWITH ips, distinct_attacking_ips, target.name AS target_country, count(*) AS attack_events\nORDER BY attack_events DESC, target_country ASC\nLIMIT 5\nWITH ips, distinct_attacking_ips, collect({country: target_country, attack_events: attack_events}) AS top_target_countries\nMATCH (ip)-[a:ATTACKS]->(:Country)\nWHERE ip IN ips AND a.technique <> 'unknown'\nWITH distinct_attacking_ips, top_target_countries, a.technique AS technique, count(*) AS attack_events\nORDER BY attack_events DESC, technique ASC\nLIMIT 3\nWITH distinct_attacking_ips, top_target_countries, collect({technique: technique, attack_events: attack_events}) AS top_techniques\nRETURN distinct_attacking_ips, top_target_countries, top_techniques"
+        },
+        "final_validation": {
+          "trace": null,
+          "error": null,
+          "results_preview": [
+            {
+              "distinct_attacking_ips": 2790,
+              "top_target_countries": [
+                {
+                  "attack_events": 43430,
+                  "country": "Germany"
+                },
+                {
+                  "attack_events": 38573,
+                  "country": "United States of America"
+                },
+                {
+                  "attack_events": 36447,
+                  "country": "France"
+                },
+                {
+                  "attack_events": 36047,
+                  "country": "Poland"
+                },
+                {
+                  "attack_events": 35697,
+                  "country": "Canada"
+                }
+              ],
+              "top_techniques": [
+                {
+                  "technique": "T1566 Phishing",
+                  "attack_events": 533403
+                },
+                {
+                  "technique": "T1110 Brute Force",
+                  "attack_events": 8224
+                },
+                {
+                  "technique": "T1595 Active Scanning",
+                  "attack_events": 7586
+                }
+              ]
+            }
+          ]
+        },
+        "explanation": {
+          "text": "It finds all distinct IPs originating from China, reports how many there are, then returns the top 5 target countries they attack (by attack event count) and the top 3 non\u2011`unknown` ATTACKS techniques they use (also by event count)."
+        }
+      },
+      "token_usage": {
+        "input": 2955,
+        "output": 2863,
+        "total": 5818
+      },
+      "duration_seconds": 81.585,
+      "started_at": "2026-02-20T06:27:15.612555+00:00",
+      "ended_at": "2026-02-20T06:28:37.197042+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:28:37.182340+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 5,
+      "category": "multi-subquery",
+      "prompt": "For IPs from Russia: count distinct IPs, count total attacks, and list top 5 industries targeted.",
+      "expected_cypher": "CALL {\n  MATCH (ip:IP)-[:FROM]->(src:Country {name:'Russia'})\n  RETURN count(DISTINCT ip) AS distinctIPs\n}\nCALL {\n  MATCH (ip:IP)-[:FROM]->(src:Country {name:'Russia'})\n  MATCH (ip)-[:ATTACKS]->(:Country)\n  RETURN count(*) AS totalAttacks\n}\nCALL {\n  MATCH (ip:IP)-[:FROM]->(src:Country {name:'Russia'})\n  MATCH (ip)-[a:ATTACKS]->(:Country)\n  WITH a.industry AS industry, count(*) AS attacks\n  ORDER BY attacks DESC\n  LIMIT 5\n  RETURN collect({industry: industry, attacks: attacks}) AS topIndustries\n}\nRETURN distinctIPs, totalAttacks, topIndustries",
+      "agent_cypher": "MATCH (russia:Country {name: 'Russia'})<-[:FROM]-(ip:IP)\nMATCH (ip)-[a:ATTACKS]->(:Country)\nWITH collect(DISTINCT ip) AS ips, count(a) AS total_attacks\nUNWIND ips AS ip\nMATCH (ip)-[a2:ATTACKS]->(:Country)\nWHERE a2.industry IS NOT NULL\nWITH size(ips) AS distinct_source_ips, total_attacks, a2.industry AS industry, count(*) AS industry_attack_count\nORDER BY industry_attack_count DESC\nWITH distinct_source_ips, total_attacks, collect({industry: industry, attack_count: industry_attack_count})[0..5] AS top_targeted_industries\nRETURN distinct_source_ips, total_attacks, top_targeted_industries",
+      "response": [],
+      "error": null,
+      "analysis": {
+        "has_query": true,
+        "query_length": 591,
+        "has_error": false,
+        "error_type": "NONE",
+        "has_results": true,
+        "result_type": "list",
+        "result_count": 0,
+        "status": "SUCCESS_ZERO_ROWS",
+        "status_detail": "Query executed successfully but returned no data"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Measure attack activity originating from Russian IP addresses by summarizing how many unique source IPs are involved, how many total attack events they generated, and which industries are most frequently targeted (top 5).\",\n  \"KEY_ENTITIES\": {\n    \"NODES\": [\n      \"(:IP {address, botnet, pulse_ids}) as the source of attacks\",\n      \"(:Country {name}) as both the origin country (Russia) and the attacked country target node connected by ATTACKS\",\n      \"(:ASN {number}) is present in the schema via BELONGS_TO but not required for the requested outputs unless added as optional context\"\n    ],\n    \"RELATIONSHIPS\": [\n      \"(ip:IP)-[:FROM]->(origin:Country) to identify IPs that originate from Russia\",\n      \"(ip:IP)-[:ATTACKS {industry, technique, protocol, technology, pulse_id, documented_create_date, documented_modified_date}]->(target:Country) to count attacks and extract the targeted industry values\",\n      \"(ip:IP)-[:BELONGS_TO]->(asn:ASN) is not necessary for this question but could be included if the user later wants breakdowns by ASN\"\n    ],\n    \"PROPERTIES_USED\": [\n      \"Country.name (to match Russia)\",\n      \"IP.address (for distinct IP counting)\",\n      \"ATTACKS.industry (for top 5 targeted industries)\",\n      \"ATTACKS relationship instances (for total attack count)\"\n    ]\n  },\n  \"FILTERS\": [\n    \"Only include IP nodes that have an origin relationship (ip)-[:FROM]->(country) where country.name equals 'Russia' (case/whitespace handling should be decided; default exact match).\",\n    \"Only include ATTACKS relationships emanating from those Russian-origin IPs.\",\n    \"For the 'top industries' list: consider only ATTACKS relationships where the industry property is present and non-empty; optionally group missing/unknown values separately if desired.\"\n  ],\n  \"OUTPUT_FORMAT\": \"Return a single result containing: (1) distinct_ip_count, (2) total_attack_count (number of ATTACKS relationships from Russian IPs), and (3) top_5_industries as an ordered list of up to five entries, each entry including the industry name and its corresponding attack_count (and optionally share/percentage if needed).\",\n  \"SUGGESTED_APPROACH\": \"Identify all IPs whose origin country is Russia via the FROM relationship, traverse their outgoing ATTACKS relationships, then compute two aggregations: a global aggregation for distinct source IPs and total ATTACKS count, and a grouped aggregation by ATTACKS.industry to count attacks per industry, sort descending by that count, and keep the top five; combine these into one consolidated response row.\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"For IPs originating from Russia, compute the number of distinct source IP addresses, the total number of ATTACKS relationships they generated, and the top five targeted industries ranked by attack count.\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "For IPs originating from Russia, compute the number of distinct source IP addresses, the total number of ATTACKS relationships they generated, and the top five targeted industries ranked by attack count."
+          ]
+        },
+        "generation": {
+          "fragments": [
+            "MATCH (russia:Country {name: 'Russia'})<-[:FROM]-(ip:IP)\nMATCH (ip)-[a:ATTACKS]->(:Country)\nWITH collect(DISTINCT ip) AS ips, count(a) AS total_attacks\nUNWIND ips AS ip\nMATCH (ip)-[a2:ATTACKS]->(:Country)\nWHERE a2.industry IS NOT NULL\nWITH size(ips) AS distinct_source_ips, total_attacks, a2.industry AS industry, count(*) AS industry_attack_count\nORDER BY industry_attack_count DESC\nWITH distinct_source_ips, total_attacks, collect({industry: industry, attack_count: industry_attack_count})[0..5] AS top_targeted_industries\nRETURN distinct_source_ips, total_attacks, top_targeted_industries"
+          ],
+          "trace": [
+            {
+              "subproblem": "For IPs originating from Russia, compute the number of distinct source IP addresses, the total number of ATTACKS relationships they generated, and the top five targeted industries ranked by attack count.",
+              "attempts": [
+                {
+                  "fragment": "MATCH (russia:Country {name: 'Russia'})<-[:FROM]-(ip:IP)\nMATCH (ip)-[a:ATTACKS]->(:Country)\nWITH collect(DISTINCT ip) AS ips, count(a) AS total_attacks\nUNWIND ips AS ip\nMATCH (ip)-[a2:ATTACKS]->(:Country)\nWHERE a2.industry IS NOT NULL\nWITH size(ips) AS distinct_source_ips, total_attacks, a2.industry AS industry, count(*) AS industry_attack_count\nORDER BY industry_attack_count DESC\nWITH distinct_source_ips, total_attacks, collect({industry: industry, attack_count: industry_attack_count})[0..5] AS top_targeted_industries\nRETURN distinct_source_ips, total_attacks, top_targeted_industries",
+                  "matched_pairs": [],
+                  "ok": true,
+                  "error": null,
+                  "rows_preview": []
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": "MATCH (russia:Country {name: 'Russia'})<-[:FROM]-(ip:IP)\nMATCH (ip)-[a:ATTACKS]->(:Country)\nWITH collect(DISTINCT ip) AS ips, count(a) AS total_attacks\nUNWIND ips AS ip\nMATCH (ip)-[a2:ATTACKS]->(:Country)\nWHERE a2.industry IS NOT NULL\nWITH size(ips) AS distinct_source_ips, total_attacks, a2.industry AS industry, count(*) AS industry_attack_count\nORDER BY industry_attack_count DESC\nWITH distinct_source_ips, total_attacks, collect({industry: industry, attack_count: industry_attack_count})[0..5] AS top_targeted_industries\nRETURN distinct_source_ips, total_attacks, top_targeted_industries"
+        },
+        "final_validation": {
+          "trace": null,
+          "error": null,
+          "results_preview": []
+        },
+        "explanation": {
+          "text": "It finds IPs originating from Russia, counts their total ATTACKS relationships to any country, and returns the number of distinct Russian source IPs plus the top 5 non-null target industries they attack ranked by attack volume."
+        }
+      },
+      "token_usage": {
+        "input": 1659,
+        "output": 1720,
+        "total": 3379
+      },
+      "duration_seconds": 30.826,
+      "started_at": "2026-02-20T06:28:37.198506+00:00",
+      "ended_at": "2026-02-20T06:29:08.024305+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:29:08.010563+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 6,
+      "category": "aggregation",
+      "prompt": "Which ASN has attacked the most distinct countries?",
+      "expected_cypher": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN), (ip)-[:ATTACKS]->(c:Country)\nWITH asn.number AS asn, count(DISTINCT c.name) AS countries\nORDER BY countries DESC\nLIMIT 1\nRETURN asn, countries",
+      "agent_cypher": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[:ATTACKS]->(target:Country)\nWITH asn, count(DISTINCT target) AS distinct_country_count\nWITH max(distinct_country_count) AS max_country_count, collect({asn: asn, cnt: distinct_country_count}) AS rows\nUNWIND rows AS row\nWITH row\nWHERE row.cnt = max_country_count\nRETURN row.asn.number AS asn_number, row.cnt AS distinct_country_count\nORDER BY asn_number",
+      "response": [
+        {
+          "asn_number": "AS57523 chang way technologies co. limited",
+          "distinct_country_count": 64
+        }
+      ],
+      "error": null,
+      "analysis": {
+        "has_query": true,
+        "query_length": 402,
+        "has_error": false,
+        "error_type": "NONE",
+        "has_results": true,
+        "result_type": "list",
+        "result_count": 1,
+        "status": "SUCCESS",
+        "status_detail": "Query executed successfully and returned 1 rows"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify the autonomous system number (ASN) that is responsible for attacks against the widest geographic spread, measured by the highest number of distinct target countries it has attacked (via its associated IPs).\",\n  \"KEY_ENTITIES\": {\n    \"NODES\": [\n      \"(:ASN {number})\",\n      \"(:IP {address, botnet, pulse_ids})\",\n      \"(:Country {name})\"\n    ],\n    \"RELATIONSHIPS\": [\n      \"(ip:IP)-[:BELONGS_TO]->(asn:ASN)\",\n      \"(ip:IP)-[:ATTACKS {technique, protocol, technology, industry, pulse_id, documented_create_date, documented_modified_date}]->(country:Country)\"\n    ],\n    \"NOTES\": [\n      \"The attacked countries are the :Country nodes reached via :ATTACKS (targets).\",\n      \"The (ip)-[:FROM]->(country) relationship represents the IP\u2019s origin country and is not required to answer this question unless the user later wants to segment by source geography.\"\n    ]\n  },\n  \"FILTERS\": {\n    \"REQUIRED\": [],\n    \"IMPLIED\": [\n      \"Only count countries that are connected via at least one :ATTACKS relationship from an IP that belongs to the ASN.\",\n      \"Count distinct target countries per ASN (deduplicate multiple attacks from the same ASN to the same country, even across multiple IPs or multiple ATTACKS edges).\"\n    ],\n    \"OPTIONAL_CLARIFICATIONS_TO_CONSIDER\": [\n      \"Whether to restrict to a time window using documented_create_date / documented_modified_date.\",\n      \"Whether to restrict to a specific pulse_id or set of pulse_ids (either on :ATTACKS.pulse_id or IP.pulse_ids depending on intended meaning).\",\n      \"How to handle ties (e.g., return all ASNs tied for max, or pick one deterministically).\"\n    ]\n  },\n  \"OUTPUT_FORMAT\": {\n    \"PRIMARY_RESULT\": \"The top ASN (asn.number) with the maximum count of distinct attacked countries.\",\n    \"FIELDS\": [\n      \"asn_number\",\n      \"distinct_attacked_country_count\"\n    ],\n    \"OPTIONAL_FIELDS\": [\n      \"list_of_attacked_countries (names) for the top ASN\",\n      \"tie_handling: if multiple ASNs share the maximum, return a list of ASN numbers with the same max count\"\n    ],\n    \"ORDERING\": \"Rank ASNs by distinct_attacked_country_count descending; return the top result (or all tied top results if requested).\"\n  },\n  \"SUGGESTED_APPROACH\": \"Traverse from ASN to its IPs via BELONGS_TO, then from those IPs to target Country nodes via ATTACKS. For each ASN, compute the number of unique target countries reached (distinct Country). Rank ASNs by this distinct count and return the highest (optionally including the country list and handling ties explicitly).\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Find the ASN whose associated IPs have ATTACKS relationships to the greatest number of distinct target Country nodes, and return that ASN number with the distinct country count (optionally returning all ties).\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Find the ASN whose associated IPs have ATTACKS relationships to the greatest number of distinct target Country nodes, and return that ASN number with the distinct country count (optionally returning all ties)."
+          ]
+        },
+        "generation": {
+          "fragments": [
+            "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[:ATTACKS]->(target:Country)\nWITH asn, count(DISTINCT target) AS distinct_country_count\nWITH max(distinct_country_count) AS max_country_count, collect({asn: asn, cnt: distinct_country_count}) AS rows\nUNWIND rows AS row\nWITH row\nWHERE row.cnt = max_country_count\nRETURN row.asn.number AS asn_number, row.cnt AS distinct_country_count\nORDER BY asn_number"
+          ],
+          "trace": [
+            {
+              "subproblem": "Find the ASN whose associated IPs have ATTACKS relationships to the greatest number of distinct target Country nodes, and return that ASN number with the distinct country count (optionally returning all ties).",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[:ATTACKS]->(target:Country)\nWITH asn, count(DISTINCT target) AS distinct_country_count\nWITH max(distinct_country_count) AS max_country_count, collect({asn: asn, cnt: distinct_country_count}) AS rows\nUNWIND rows AS row\nWITH row\nWHERE row.cnt = max_country_count\nRETURN row.asn.number AS asn_number, row.cnt AS distinct_country_count\nORDER BY asn_number",
+                  "matched_pairs": [],
+                  "ok": true,
+                  "error": null,
+                  "rows_preview": [
+                    {
+                      "asn_number": "AS57523 chang way technologies co. limited",
+                      "distinct_country_count": 64
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[:ATTACKS]->(target:Country)\nWITH asn, count(DISTINCT target) AS distinct_country_count\nWITH max(distinct_country_count) AS max_country_count, collect({asn: asn, cnt: distinct_country_count}) AS rows\nUNWIND rows AS row\nWITH row\nWHERE row.cnt = max_country_count\nRETURN row.asn.number AS asn_number, row.cnt AS distinct_country_count\nORDER BY asn_number"
+        },
+        "final_validation": {
+          "trace": null,
+          "error": null,
+          "results_preview": [
+            {
+              "asn_number": "AS57523 chang way technologies co. limited",
+              "distinct_country_count": 64
+            }
+          ]
+        },
+        "explanation": {
+          "text": "It finds the ASN(s) whose IPs have attacked the highest number of distinct target countries, returning those ASN numbers and their distinct-country attack counts."
+        }
+      },
+      "token_usage": {
+        "input": 1540,
+        "output": 943,
+        "total": 2483
+      },
+      "duration_seconds": 20.741,
+      "started_at": "2026-02-20T06:29:08.024901+00:00",
+      "ended_at": "2026-02-20T06:29:28.766092+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:29:28.754029+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 7,
+      "category": "graph-structure",
+      "prompt": "Find IPs that attacked more than 10 distinct countries.",
+      "expected_cypher": "MATCH (ip:IP)-[:ATTACKS]->(c:Country)\nWITH ip.address AS ip, count(DISTINCT c.name) AS countries\nWHERE countries > 10\nRETURN ip, countries\nORDER BY countries DESC",
+      "agent_cypher": "MATCH (ip:IP)-[:FROM]->(:Country {name: 'Russia'})\nMATCH (ip)-[a:ATTACKS]->(:Country)\nWITH count(DISTINCT ip) AS distinct_ip_count,\n     count(a) AS total_attack_events,\n     collect(a.industry) AS industries\nUNWIND industries AS industry\nWITH distinct_ip_count, total_attack_events, industry\nWHERE industry IS NOT NULL AND industry <> ''\nWITH distinct_ip_count, total_attack_events, industry, count(*) AS industry_attack_count\nORDER BY industry_attack_count DESC\nWITH distinct_ip_count,\n     total_attack_events,\n     collect({industry: industry, attack_count: industry_attack_count})[0..5] AS top_5_industries\nRETURN distinct_ip_count, total_attack_events, top_5_industries",
+      "response": null,
+      "error": "Timeout after 400 seconds",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Timeout after 400 seconds",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1668,
+        "output": 2322,
+        "total": 3990
+      },
+      "duration_seconds": 400.069,
+      "started_at": "2026-02-20T06:29:28.766650+00:00",
+      "ended_at": "2026-02-20T06:36:08.835908+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:35:54.005373+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 8,
+      "category": "matcher-needed",
+      "prompt": "Top 5 target countries attacked by IPs from United States using protocol ssh.",
+      "expected_cypher": "MATCH (ip:IP)-[:FROM]->(src:Country {name:'United States of America'})\nMATCH (ip)-[a:ATTACKS {protocol:'RDP'}]->(tgt:Country)\nWITH tgt.name AS country, count(*) AS attacks\nORDER BY attacks DESC\nLIMIT 5\nRETURN country, attacks",
+      "agent_cypher": "MATCH (ip:IP)-[:FROM]->(src:Country)\nWHERE src.name = 'United States of America'\nMATCH (ip)-[a:ATTACKS]->(tgt:Country)\nWHERE a.protocol = 'ssh'\nWITH tgt, count(*) AS attack_events\nRETURN tgt.name AS target_country, attack_events\nORDER BY attack_events DESC\nLIMIT 5",
+      "response": [
+        {
+          "target_country": "Australia",
+          "attack_events": 1293
+        },
+        {
+          "target_country": "Germany",
+          "attack_events": 975
+        },
+        {
+          "target_country": "Malaysia",
+          "attack_events": 256
+        },
+        {
+          "target_country": "France",
+          "attack_events": 227
+        },
+        {
+          "target_country": "Poland",
+          "attack_events": 108
+        }
+      ],
+      "error": null,
+      "analysis": {
+        "has_query": true,
+        "query_length": 264,
+        "has_error": false,
+        "error_type": "NONE",
+        "has_results": true,
+        "result_type": "list",
+        "result_count": 5,
+        "status": "SUCCESS",
+        "status_detail": "Query executed successfully and returned 5 rows"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify which destination countries are most frequently targeted by attack events originating from IP addresses located in the United States when the attack protocol is SSH, and rank the top 5 targets.\",\n  \"KEY_ENTITIES\": {\n    \"nodes\": [\n      \"IP (source attacker infrastructure)\",\n      \"Country (both source country and target country)\"\n    ],\n    \"relationships\": [\n      \"(:IP)-[:FROM]->(:Country) (to determine the source country of the IP)\",\n      \"(:IP)-[:ATTACKS]->(:Country) (to determine the target country and count attack events)\"\n    ],\n    \"relationship_properties_used\": [\n      \"ATTACKS.protocol\"\n    ],\n    \"optional_context_nodes\": [\n      \"ASN (not required for this question unless later requested for attribution breakdown)\"\n    ]\n  },\n  \"FILTERS\": {\n    \"source_country\": \"United States\",\n    \"attack_protocol\": \"ssh\",\n    \"top_n\": 5,\n    \"counting_rule\": \"Count ATTACKS relationships (attack events) matching the filters; group by target country.\"\n  },\n  \"OUTPUT_FORMAT\": {\n    \"type\": \"ranked_list\",\n    \"columns\": [\n      \"target_country_name\",\n      \"attack_event_count\"\n    ],\n    \"ordering\": \"Sort by attack_event_count descending; if tie, sort by target_country_name ascending for deterministic results.\"\n  },\n  \"SUGGESTED_APPROACH\": \"Match IPs that are geolocated to the United States via the FROM relationship, then follow their ATTACKS relationships to target Country nodes while filtering ATTACKS.protocol to SSH. Aggregate the number of matching attack events per target country, order by the aggregated count descending, and return only the top 5 countries with their counts.\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Return the top 5 target countries (with counts) attacked via ATTACKS events where the source IP is FROM the United States and the ATTACKS.protocol is ssh, ranked by the number of matching attack events.\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Return the top 5 target countries (with counts) attacked via ATTACKS events where the source IP is FROM the United States and the ATTACKS.protocol is ssh, ranked by the number of matching attack events."
+          ]
+        },
+        "generation": {
+          "fragments": [
+            "MATCH (ip:IP)-[:FROM]->(src:Country)\nWHERE src.name = 'United States of America'\nMATCH (ip)-[a:ATTACKS]->(tgt:Country)\nWHERE a.protocol = 'ssh'\nWITH tgt, count(*) AS attack_events\nRETURN tgt.name AS target_country, attack_events\nORDER BY attack_events DESC\nLIMIT 5"
+          ],
+          "trace": [
+            {
+              "subproblem": "Return the top 5 target countries (with counts) attacked via ATTACKS events where the source IP is FROM the United States and the ATTACKS.protocol is ssh, ranked by the number of matching attack events.",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[:FROM]->(src:Country)\nWHERE src.name = 'United States of America'\nMATCH (ip)-[a:ATTACKS]->(tgt:Country)\nWHERE a.protocol = 'ssh'\nWITH tgt, count(*) AS attack_events\nRETURN tgt.name AS target_country, attack_events\nORDER BY attack_events DESC\nLIMIT 5",
+                  "matched_pairs": [
+                    {
+                      "kind": "node",
+                      "label": "Country",
+                      "property": "name",
+                      "original": "'United States'",
+                      "value": "United States of America"
+                    },
+                    {
+                      "kind": "relationship",
+                      "label": "ATTACKS",
+                      "property": "protocol",
+                      "original": "'ssh'",
+                      "value": "ssh"
+                    }
+                  ],
+                  "ok": true,
+                  "error": null,
+                  "rows_preview": [
+                    {
+                      "target_country": "Australia",
+                      "attack_events": 1293
+                    },
+                    {
+                      "target_country": "Germany",
+                      "attack_events": 975
+                    },
+                    {
+                      "target_country": "Malaysia",
+                      "attack_events": 256
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": "MATCH (ip:IP)-[:FROM]->(src:Country)\nWHERE src.name = 'United States of America'\nMATCH (ip)-[a:ATTACKS]->(tgt:Country)\nWHERE a.protocol = 'ssh'\nWITH tgt, count(*) AS attack_events\nRETURN tgt.name AS target_country, attack_events\nORDER BY attack_events DESC\nLIMIT 5"
+        },
+        "final_validation": {
+          "trace": null,
+          "error": null,
+          "results_preview": [
+            {
+              "target_country": "Australia",
+              "attack_events": 1293
+            },
+            {
+              "target_country": "Germany",
+              "attack_events": 975
+            },
+            {
+              "target_country": "Malaysia",
+              "attack_events": 256
+            }
+          ]
+        },
+        "explanation": {
+          "text": "It finds IPs originating from the United States that performed SSH attacks, counts how many attack relationships target each country, and returns the top 5 target countries by attack event volume."
+        }
+      },
+      "token_usage": {
+        "input": 1470,
+        "output": 693,
+        "total": 2163
+      },
+      "duration_seconds": 22.293,
+      "started_at": "2026-02-20T06:36:08.836564+00:00",
+      "ended_at": "2026-02-20T06:36:31.129958+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:36:31.116905+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 9,
+      "category": "temporal",
+      "prompt": "Monthly attack counts per technique (grouped by YYYY-MM).",
+      "expected_cypher": "MATCH (:IP)-[a:ATTACKS]->(:Country)\nWITH substring(toString(a.documented_create_date[0]),0,7) AS year_month, a.technique AS technique, count(*) AS attacks\nRETURN year_month, technique, attacks\nORDER BY year_month DESC, attacks DESC",
+      "agent_cypher": "MATCH (:IP)-[r:ATTACKS]->(:Country)\nWITH r, date.truncate('month', coalesce(r.documented_create_date, r.documented_modified_date)) AS year_month\nWITH year_month, r.technique AS technique, count(*) AS attack_count\nRETURN substring(toString(year_month), 0, 7) AS month, technique, attack_count\nORDER BY year_month ASC, technique ASC",
+      "response": null,
+      "error": "Timeout after 400 seconds",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Timeout after 400 seconds",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1491,
+        "output": 1142,
+        "total": 2633
+      },
+      "duration_seconds": 400.103,
+      "started_at": "2026-02-20T06:36:31.130618+00:00",
+      "ended_at": "2026-02-20T06:43:11.233909+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:42:08.131958+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 10,
+      "category": "discovery",
+      "prompt": "List distinct technologies observed in attacks against the Finance industry, with counts.",
+      "expected_cypher": "MATCH (:IP)-[a:ATTACKS]->(:Country)\nWHERE a.industry = 'Finance'\nWITH a.technology AS technology, count(*) AS attacks\nORDER BY attacks DESC\nRETURN technology, attacks",
+      "agent_cypher": "MATCH (ip:IP)-[r:ATTACKS]->(:Country)\nWHERE r.industry = 'Finance'\n  AND r.technology <> 'unknown'\nWITH r.technology AS technology, count(*) AS finance_attack_events\nRETURN technology, finance_attack_events\nORDER BY finance_attack_events DESC",
+      "response": [
+        {
+          "technology": "windows",
+          "finance_attack_events": 30
+        }
+      ],
+      "error": null,
+      "analysis": {
+        "has_query": true,
+        "query_length": 242,
+        "has_error": false,
+        "error_type": "NONE",
+        "has_results": true,
+        "result_type": "list",
+        "result_count": 1,
+        "status": "SUCCESS",
+        "status_detail": "Query executed successfully and returned 1 rows"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify which attack technologies have been observed targeting the Finance industry and quantify how frequently each technology appears in the recorded attack events.\",\n  \"KEY_ENTITIES\": {\n    \"NODES\": [\n      \"(:IP {address, botnet, pulse_ids})\",\n      \"(:Country {name})\"\n    ],\n    \"RELATIONSHIPS\": [\n      \"(:IP)-[:ATTACKS {technique, protocol, technology, industry, pulse_id, documented_create_date, documented_modified_date}]->(:Country)\"\n    ],\n    \"OPTIONAL_CONTEXT_NOT_REQUIRED\": [\n      \"(:IP)-[:FROM]->(:Country) (source/geolocation of IP, not needed for technology counts)\",\n      \"(:IP)-[:BELONGS_TO]->(:ASN {number}) (network ownership, not needed for technology counts)\"\n    ]\n  },\n  \"FILTERS\": {\n    \"MANDATORY\": [\n      \"Use only ATTACKS relationships where industry equals 'Finance'\"\n    ],\n    \"RECOMMENDED_DATA_QUALITY\": [\n      \"Exclude records where technology is null, missing, or empty/blank to avoid an uninformative 'unknown' bucket (unless the user explicitly wants unknowns counted).\"\n    ],\n    \"NOT_SPECIFIED_BUT_POSSIBLE_EXTENSION\": [\n      \"No time window is provided; include all available documented_create_date/documented_modified_date unless the user later adds a date filter.\"\n    ]\n  },\n  \"OUTPUT_FORMAT\": {\n    \"TYPE\": \"Tabular/list results\",\n    \"FIELDS_PER_ROW\": [\n      \"technology (distinct value from ATTACKS.technology)\",\n      \"count (number of ATTACKS relationships matching Finance for that technology)\"\n    ],\n    \"SORTING\": \"Sort by count descending (and then technology ascending as a stable tie-breaker, if desired).\"\n  },\n  \"SUGGESTED_APPROACH\": \"Traverse ATTACKS relationships, filter to those labeled with industry = 'Finance', group the remaining attack events by the technology property, compute the number of events per technology, and return the distinct technology list with their counts, optionally excluding null/blank technology values and ordering by highest frequency.\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Return each distinct ATTACKS.technology used in attacks against the Finance industry and the number of Finance-labeled ATTACKS events for each technology, sorted by count descending.\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Return each distinct ATTACKS.technology used in attacks against the Finance industry and the number of Finance-labeled ATTACKS events for each technology, sorted by count descending."
+          ]
+        },
+        "generation": {
+          "fragments": [
+            "MATCH (ip:IP)-[r:ATTACKS]->(:Country)\nWHERE r.industry = 'Finance'\n  AND r.technology <> 'unknown'\nWITH r.technology AS technology, count(*) AS finance_attack_events\nRETURN technology, finance_attack_events\nORDER BY finance_attack_events DESC"
+          ],
+          "trace": [
+            {
+              "subproblem": "Return each distinct ATTACKS.technology used in attacks against the Finance industry and the number of Finance-labeled ATTACKS events for each technology, sorted by count descending.",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(:Country)\nWHERE r.industry = 'Finance'\n  AND r.technology <> 'unknown'\nWITH r.technology AS technology, count(*) AS finance_attack_events\nRETURN technology, finance_attack_events\nORDER BY finance_attack_events DESC",
+                  "matched_pairs": [
+                    {
+                      "kind": "relationship",
+                      "label": "ATTACKS",
+                      "property": "industry",
+                      "original": "'Finance'",
+                      "value": "Finance"
+                    }
+                  ],
+                  "ok": true,
+                  "error": null,
+                  "rows_preview": [
+                    {
+                      "technology": "windows",
+                      "finance_attack_events": 30
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": "MATCH (ip:IP)-[r:ATTACKS]->(:Country)\nWHERE r.industry = 'Finance'\n  AND r.technology <> 'unknown'\nWITH r.technology AS technology, count(*) AS finance_attack_events\nRETURN technology, finance_attack_events\nORDER BY finance_attack_events DESC"
+        },
+        "final_validation": {
+          "trace": null,
+          "error": null,
+          "results_preview": [
+            {
+              "technology": "windows",
+              "finance_attack_events": 30
+            }
+          ]
+        },
+        "explanation": {
+          "text": "It counts and ranks the number of IP-to-country `ATTACKS` events targeting the **Finance** industry for each **known (non-`unknown`) technology**, returning technologies ordered by highest event count."
+        }
+      },
+      "token_usage": {
+        "input": 1429,
+        "output": 817,
+        "total": 2246
+      },
+      "duration_seconds": 382.475,
+      "started_at": "2026-02-20T06:43:11.238906+00:00",
+      "ended_at": "2026-02-20T06:49:33.714235+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:49:33.702097+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 11,
+      "category": "multi-hop",
+      "prompt": "For each ASN, top 3 protocols it used when attacking France.",
+      "expected_cypher": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[a:ATTACKS]->(c:Country {name:'France'})\nWITH asn.number AS asn, a.protocol AS protocol, count(*) AS cnt\nORDER BY asn, cnt DESC\nWITH asn, collect({protocol: protocol, cnt: cnt}) AS items\nUNWIND items[0..3] AS top\nRETURN asn, top.protocol AS protocol, top.cnt AS attacks\nORDER BY asn, attacks DESC",
+      "agent_cypher": "MATCH (ip:IP)-[r:ATTACKS]->(c:Country)\nMATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nWHERE c.name = \"France\" AND r.protocol <> \"unknown\"\nWITH asn, r.protocol AS protocol, count(*) AS attack_count\nORDER BY asn.number, attack_count DESC, protocol ASC\nWITH asn, collect({protocol: protocol, attack_count: attack_count})[0..3] AS top_protocols\nRETURN asn.number AS asn, top_protocols\nORDER BY asn ASC",
+      "response": [
+        {
+          "asn": "AS10103 hk broadband network ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS10220 pt. kreasi sejahtera teknologi",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS10299 empresas municipales de cali e.i.c.e. e.s.p.",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS10439 carinet  inc.",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "snmp"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "sip"
+            }
+          ]
+        },
+        {
+          "asn": "AS11419 telefnica brasil s.a",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS11427 charter communications inc",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS11888 television internacional  s.a. de c.v.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS12252 america movil peru s.a.c.",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS12353 vodafone portugal - communicacoes pessoais s.a.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS12389 pjsc rostelecom",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS12479 orange espagne sa",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS12695 llc digital network",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS12768 jsc er-telecom holding",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS12874 fastweb spa",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS12876 online s.a.s.",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 3,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS131090 cat telecom public company ltd",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS131314 china broadband communications (hong kong) company limited",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS131353 nhanhoa software company",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS131423 branch of long van system solution jsc - hanoi",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS132203 tencent building  kejizhongyi avenue",
+          "top_protocols": [
+            {
+              "attack_count": 312,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS132787 helios it infrasolutions pvt",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS13285 talktalk communications",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS133296 web werks india pvt. ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS133334 dctv cable network broadband services inc",
+          "top_protocols": [
+            {
+              "attack_count": 9,
+              "protocol": "sip"
+            }
+          ]
+        },
+        {
+          "asn": "AS13335 cloudflare",
+          "top_protocols": [
+            {
+              "attack_count": 112,
+              "protocol": "http"
+            },
+            {
+              "attack_count": 112,
+              "protocol": "tcp"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS133398 tele asia limited",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS133774 fuzhou",
+          "top_protocols": [
+            {
+              "attack_count": 9,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS134026 ultranet services private limited",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS134238 chinanet jiangxi province idc network",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS134337 r2 net solutions pvt ltd",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS134366 cloud computing hk limited",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS134761 chinanet ningxia province zhongwei idc network",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS134763 chinanet guangdong province network",
+          "top_protocols": [
+            {
+              "attack_count": 8,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS134765 chinanet yunnan province idc1 network",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS134768 chinanet shaanxi province cloud base network",
+          "top_protocols": [
+            {
+              "attack_count": 6,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS134771 wenzhou  zhejiang province  p.r.china.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS13490 buckeye cablevision  inc.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS134945 blue sky broadband pvt. ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS134963 alibaba.com singapore e-commerce private limited",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS135182 moradabad internet services private limited",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS135310 inspire broadband",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS135377 ucloud information technology (hk) limited",
+          "top_protocols": [
+            {
+              "attack_count": 13,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 7,
+              "protocol": "sip"
+            },
+            {
+              "attack_count": 7,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS135524 university of dhaka",
+          "top_protocols": [
+            {
+              "attack_count": 6,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS135777 shreenortheast connect and services pvt ltd",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS135905 vietnam posts and telecommunications group",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS135932 viet storage technology joint stock company",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS135953 vietnam online network solution joint stock compnay",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS136052 pt cloud hosting indonesia",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS136170 pt. exabytes network indonesia",
+          "top_protocols": [
+            {
+              "attack_count": 8,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS13650 axia fibrenet ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 11,
+              "protocol": "snmp"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS136827 universitas pgri semarang",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS136958 china unicom guangdong ip network",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS136970 yisu cloud ltd",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS137280 kingsoft cloud corporation limited",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS137318 diskominfo kabupaten pati",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS137361 diskominfo kab. magelang",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS137687 luoyang  henan province  p.r.china.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS137697 chinatelecom jiangsu yangzhou idc networkdescr",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS137699 chinatelecom jiangsu suqian idc network",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS137702 nanjing  jiangsu province  p.r.china.",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS137718 beijing volcano engine technology co.  ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS137823 cloudone",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS138421 china unicom",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS138950 jiangsu wuxi international idc network",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS139190 google asia pacific pte. ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS139201 jiangxi jiujiang idc",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS139282 novus network",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS139473 shebatel network ltd",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS13999 mega cable  s.a. de c.v.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS140061 qinghai telecom",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS140469 pt wahyu adidaya network",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS14051 consolidated communications",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS14061 digitalocean  llc",
+          "top_protocols": [
+            {
+              "attack_count": 207,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS14080 telmex colombia s.a.",
+          "top_protocols": [
+            {
+              "attack_count": 6,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS142403 yisu cloud ltd",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS142608 china telecom",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS14618 amazon.com  inc.",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS147161 universitas muhammadiyah gresik",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS14987 rethem hosting llc",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS14988 african network information center",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS15169 google llc",
+          "top_protocols": [
+            {
+              "attack_count": 36,
+              "protocol": "http"
+            },
+            {
+              "attack_count": 36,
+              "protocol": "tcp"
+            },
+            {
+              "attack_count": 10,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS15290 allstream corp.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS15311 telefonica empresas",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS15475 nile online",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS15582 ojsc comcor",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS15704 xtra telecom s.a.",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS15713 llc global-city-net",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS15895 kyivstar pjsc",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS15924 vodafone net iletisim hizmetleri anonim sirketi",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS16223 lanet network ltd",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS16276 ovh sas",
+          "top_protocols": [
+            {
+              "attack_count": 33,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 10,
+              "protocol": "sip"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS16735 algar telecom s/a",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS16814 nss s.a.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS17222 mundivox do brasil ltda",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS174 cogent communications",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS17501 worldlink communications pvt ltd",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS17557 pakistan telecommunication company limited",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS17577 lg hellovision corp.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS17621 china unicom shanghai network",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS17623 china unicom",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS17638 china telecom",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS17676 softbank bb corp.",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS17858 lg powercomm",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS17882 univision llc",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS17993 vodafone samoa limited",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS18049 taiwan infrastructure network technologie",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS18207 you broadband & cable india ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS18229 ctrls datacenters",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS18403 fpt telecom company",
+          "top_protocols": [
+            {
+              "attack_count": 6,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS18881 telefnica brasil s.a",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS19318 interserver  inc",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "sip"
+            }
+          ]
+        },
+        {
+          "asn": "AS19429 etb - colombia",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS19527 google llc",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS197068 hll llc",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS197119 krena - kyrgyz research and education network association",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS200350 yandex.cloud llc",
+          "top_protocols": [
+            {
+              "attack_count": 6,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS20115 charter communications",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "telnet"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS201746 olivenet network s.l.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS202425 ip volume inc",
+          "top_protocols": [
+            {
+              "attack_count": 15,
+              "protocol": "snmp"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "sip"
+            }
+          ]
+        },
+        {
+          "asn": "AS202660 uzbektelekom joint stock company",
+          "top_protocols": [
+            {
+              "attack_count": 8,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS203247 islamic azad university",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS207423 steil-south ltd",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS209605 uab host baltic",
+          "top_protocols": [
+            {
+              "attack_count": 21,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS210644 ",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS210950 tov e-rishennya",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS211252 delis llc",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS211279 alianta-tv s.r.l.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS211298 constantine cybersecurity ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 11,
+              "protocol": "sip"
+            },
+            {
+              "attack_count": 6,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS211680 nsec - sistemas informaticos  s.a.",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "sip"
+            },
+            {
+              "attack_count": 2,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS21491 uganda telecom",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS21501 host europe gmbh",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS21574 century telecom ltda",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS21859 zenlayer inc",
+          "top_protocols": [
+            {
+              "attack_count": 8,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS22773 cox communications inc.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS22884 total play telecomunicaciones sa de cv",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS23201 telecel s.a.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS23647 communications & communicate nepal pvt ltd",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS23650 chinanet",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS23678 mykris asia  managed network and service provider",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS23700 linknet fastnet asn",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS23724 idc china telecommunications corporation",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS23969 tot public company limited",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS24186 railtel corporation of india ltd",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS24309 atria convergence technologies",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS24400 shanghai mobile communications co. ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS24514 malaysian research & education network",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS24532 inet global indo",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS24560 bharti airtel ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS24757 ethionet",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS24955 ojsc ufanet",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS25003 internet binat ltd",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS25106 mobile telesystems jllc",
+          "top_protocols": [
+            {
+              "attack_count": 8,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS2518 biglobe inc.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS25184 afranet",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS2519 arteria networks corporation",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS25250 gamtel",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS2527 sony network communications inc.",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS25408 jsc er-telecom holding",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS25490 pjsc rostelecom",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS25514 modus-global llc",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS25820 it7 networks inc",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS26210 axs bolivia s a",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS262793 douracom servicos de comunicacao ltda",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS262805 rede minas telecom ltda",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS263998 sim telecom",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS264411 costa do sol tv a cabo",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS26496 godaddy.com  llc",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS267251 telefonarnet telecomunicacoes",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS267285 ANDRE PEREIRA DA COSTA EIRELI ME",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS267506 netlux telecom",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS268622 oliveira telecom",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS268888 acrf servicos de informatica ltda - me",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS27651 entel chile s.a.",
+          "top_protocols": [
+            {
+              "attack_count": 10,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS27653 alpha communications network",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS27665 columbus communications trinidad limited.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS27699 telefnica brasil s.a",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS27843 optical technologies s.a.c.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS27882 telefnica celular de bolivia s.a.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS27988 servicios y telecomunicaciones s.a.",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS28308 orion telecomunicaes comercio e servios ltda",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS2856 british telecommunications plc",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS28573 claro s.a.",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS28624 provedora cma internet ltda",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS28649 desktop sigmanet comunicao multimdia sa",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS28665 predlink rede de telecomunices ltda",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS29518 bredband2 ab",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS29580 a1 bulgaria ead",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS29789 reflected networks  inc.",
+          "top_protocols": [
+            {
+              "attack_count": 150,
+              "protocol": "http"
+            },
+            {
+              "attack_count": 42,
+              "protocol": "tcp"
+            }
+          ]
+        },
+        {
+          "asn": "AS29791 internap holding llc",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "sip"
+            }
+          ]
+        },
+        {
+          "asn": "AS30722 vodafone italia s.p.a.",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS30844 liquid telecommunications ltd",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS31200 novotelecom ltd",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS31898 oracle corporation",
+          "top_protocols": [
+            {
+              "attack_count": 6,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS32 stanford university",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS3215 orange s.a.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS3216 pjsc vimpelcom",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS3243 meo servicos de comunicacoes e multimedia sa",
+          "top_protocols": [
+            {
+              "attack_count": 6,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS32475 singlehop llc",
+          "top_protocols": [
+            {
+              "attack_count": 10,
+              "protocol": "sip"
+            }
+          ]
+        },
+        {
+          "asn": "AS327724 african network information center",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS327764 african network information center",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS327934 african network information center",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS3320 deutsche telekom ag",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS3356 level 3 parent  llc",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS34088 host europe gmbh",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "sip"
+            }
+          ]
+        },
+        {
+          "asn": "AS3462 data communication business group",
+          "top_protocols": [
+            {
+              "attack_count": 17,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS34918 pishgaman toseeh ertebatat company (private joint stock)",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS34974 pjsc rostelecom",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS34984 tellcom iletisim hizmetleri a.s.",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS35366 isppro internet kg",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS35478 bunea telecom srl",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS35913 dedipath",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS36352 colocrossing",
+          "top_protocols": [
+            {
+              "attack_count": 12,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS36791 portland internet hosting llc",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "snmp"
+            },
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS36866 african network information center",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS36946 african network information center",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS37061 african network information center",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS37353 african network information center",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS37385 african network information center",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS3786 lg dacom corporation",
+          "top_protocols": [
+            {
+              "attack_count": 17,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS37963 hangzhou alibaba advertising co. ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS3816 colombia telecomunicaciones s.a. esp",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS38283 chinanet sichuan telecom internet data center",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "snmp"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS38365 beijing baidu netcom science and technology co.  ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 25,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS38457 honesty net solution",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS38482 biznet isp",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS38623 viettel",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS38700 smileserv",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS38731 vietel - cht company",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS394695 pdr",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS39493 cjsc kolomna-sviaz tv",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS396356 maxihost llc",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS396507 emerald onion",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS39651 com hem ab",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS396982 google",
+          "top_protocols": [
+            {
+              "attack_count": 46,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 20,
+              "protocol": "snmp"
+            },
+            {
+              "attack_count": 4,
+              "protocol": "sip"
+            }
+          ]
+        },
+        {
+          "asn": "AS398101 godaddy.com  llc",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS398108 godaddy.com  llc",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "sip"
+            }
+          ]
+        },
+        {
+          "asn": "AS39811 mts pjsc",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS39812 closed joint stock company radiotelephone",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS398324 censys  inc.",
+          "top_protocols": [
+            {
+              "attack_count": 6,
+              "protocol": "snmp"
+            },
+            {
+              "attack_count": 5,
+              "protocol": "sip"
+            }
+          ]
+        },
+        {
+          "asn": "AS39927 e-light-telecom ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS399804 hostodo",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS4134 chinanet",
+          "top_protocols": [
+            {
+              "attack_count": 237,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 9,
+              "protocol": "snmp"
+            },
+            {
+              "attack_count": 8,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS41668 jsc er-telecom holding",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS42237 amati foundation",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS42313 albtelecom sh.a.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS42610 pjsc rostelecom",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS42667 artur sienkiewicz",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS42708 glesys ab",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS43162 olimp llc",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS44327 delta comm llc",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS45061 shanghai information network co. ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS45090 shenzhen tencent computer systems company limited",
+          "top_protocols": [
+            {
+              "attack_count": 192,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 4,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS45102 alibaba (us) technology co.  ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS4538 china education and research network center",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS45458 sbn-isp/awn-isp and sbn-nix/awn-nix",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS45557 vietnam technology and telecommunication jsc",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS45820 tata teleservices",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS45899 vnpt corp",
+          "top_protocols": [
+            {
+              "attack_count": 21,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS45903 cmc telecom infrastructure company",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS4609 companhia de telecomunicacoes de macau sarl",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS4621 uninet-th",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS46606 unified layer",
+          "top_protocols": [
+            {
+              "attack_count": 8,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS47331 ttnet a.s.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS47433 sibirskie seti ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS4750 cs loxinfo public company limited",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS4755 tata communications",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS4760 hkt limited",
+          "top_protocols": [
+            {
+              "attack_count": 10,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS4766 korea telecom",
+          "top_protocols": [
+            {
+              "attack_count": 40,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 2,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS4780 digital united inc.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS4788 tm net  internet service provider",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS48004 pe tsibrankov konstantin igorevich",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS4808 china unicom beijing province network",
+          "top_protocols": [
+            {
+              "attack_count": 8,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS48090 pptechnology limited",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS4812 china telecom (group)",
+          "top_protocols": [
+            {
+              "attack_count": 13,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS4816 china telecom (group)",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS4835 china telecom (group)",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS4837 china unicom china169 backbone",
+          "top_protocols": [
+            {
+              "attack_count": 37,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS4847 china networks inter-exchange",
+          "top_protocols": [
+            {
+              "attack_count": 8,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS49392 llc baxet",
+          "top_protocols": [
+            {
+              "attack_count": 8,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS49403 avk-wellcom ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS49424 new line solutions llc",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS49434 harmony hosting sarl",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS49505 ooo network of data-centers selectel",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS49870 alsycon b.v.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "sip"
+            }
+          ]
+        },
+        {
+          "asn": "AS50215 master llc",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS51167 contabo gmbh",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "sip"
+            }
+          ]
+        },
+        {
+          "asn": "AS51559 netinternet bilisim teknolojileri as",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS51604 jsc er-telecom holding",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS51852 private layer inc",
+          "top_protocols": [
+            {
+              "attack_count": 9,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS52312 tv music house jujuy",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS53334 total uptime technologies  llc",
+          "top_protocols": [
+            {
+              "attack_count": 112,
+              "protocol": "http"
+            },
+            {
+              "attack_count": 112,
+              "protocol": "tcp"
+            }
+          ]
+        },
+        {
+          "asn": "AS53667 frantech solutions",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS53831 squarespace  inc.",
+          "top_protocols": [
+            {
+              "attack_count": 396,
+              "protocol": "http"
+            },
+            {
+              "attack_count": 396,
+              "protocol": "tcp"
+            }
+          ]
+        },
+        {
+          "asn": "AS54113 fastly",
+          "top_protocols": [
+            {
+              "attack_count": 112,
+              "protocol": "http"
+            },
+            {
+              "attack_count": 112,
+              "protocol": "tcp"
+            }
+          ]
+        },
+        {
+          "asn": "AS5483 magyar telekom plc.",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS55577 atria convergence technologies pvt ltd",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS55720 gigabit hosting sdn bhd",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS56040 china mobile communications corporation",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS56044 china mobile communications corporation",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS56046 china mobile communications corporation",
+          "top_protocols": [
+            {
+              "attack_count": 13,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS56048 china mobile communicaitons corporation",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS56466 zentex",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS5650 frontier communications of america  inc.",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS57049 small private enterprise kvant-ii",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS57427 sierra llc",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS57523 chang way technologies co. limited",
+          "top_protocols": [
+            {
+              "attack_count": 42,
+              "protocol": "http"
+            },
+            {
+              "attack_count": 42,
+              "protocol": "tcp"
+            }
+          ]
+        },
+        {
+          "asn": "AS577 bell canada",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS57835 jsc elektrosvyaz",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS57858 inter connects inc",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS58461 ct-hangzhou-idc",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS58519 cloud computing corporation",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS58542 tianjij 300000",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS58543 guangdong",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS58593 shanghai blue cloud technology co. ltd",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS58819 pt arsenet global solusi",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS58946 grameen communications",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS59019 beijing kingsoft cloud internet technology co ltd",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS6057 administracion nacional de telecomunicaciones",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS6128 cablevision systems corp.",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS6130 american internet services  llc.",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS61432 itbks892",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS6147 telefonica del peru s.a.a.",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS61826 nethouse telecom",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS62068 spectraip b.v.",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "sip"
+            }
+          ]
+        },
+        {
+          "asn": "AS63199 capitalonline data service co. ltd",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS63526 systems solutions & development technologies limited",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS63730 vnso technology company",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS63835 no 293 wanbao avenue",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS63949 linode  llc",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS6568 entel s.a. - entelnet",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS6702 science production company trifle ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS6703 private joint-stock company farlep-invest",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS6713 itissalat al-maghrib",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS6730 sunrise communications ag",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS6799 ote sa (hellenic telecommunications organisation)",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS680 verein zur foerderung eines deutschen forschungsnetzes e.v.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS6830 liberty global b.v.",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS6849 pjsc ukrtelecom",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS6939 hurricane electric llc",
+          "top_protocols": [
+            {
+              "attack_count": 9,
+              "protocol": "snmp"
+            },
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS701 verizon",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS7018 att services inc",
+          "top_protocols": [
+            {
+              "attack_count": 14,
+              "protocol": "sip"
+            },
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 2,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS7184 universidad veracruzana",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS7303 telecom argentina s.a.",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS7470 true internet co. ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS7545 tpg telecom limited",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS7552 viettel group",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS7713 pt telekomunikasi indonesia",
+          "top_protocols": [
+            {
+              "attack_count": 11,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS7922 comcast",
+          "top_protocols": [
+            {
+              "attack_count": 7,
+              "protocol": "sip"
+            },
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS8048 cantv servicios  venezuela",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS8070 microsoft corporation",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS8075 microsoft corporation",
+          "top_protocols": [
+            {
+              "attack_count": 31,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS8151 uninet s.a. de c.v.",
+          "top_protocols": [
+            {
+              "attack_count": 5,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS8220 colt technology services group limited",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS8228 sfr sa",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS8331 jsc er-telecom holding",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS8359 mts pjsc",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS8402 pjsc vimpelcom",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS8449 elcat ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS8473 bahnhof",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS852 telus communications inc.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS8560 1&1 ionos se",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS8612 tiscali italia s.p.a.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS8758 iway ag",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS8866 bulgarian telecommunications company plc.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "telnet"
+            }
+          ]
+        },
+        {
+          "asn": "AS9009 m247 ltd",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "sip"
+            },
+            {
+              "attack_count": 1,
+              "protocol": "snmp"
+            }
+          ]
+        },
+        {
+          "asn": "AS9198 jsc kazakhtelecom",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS9269 hong kong broadband network",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS9299 philippine long distance telephone company",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS9304 hgc global communications limited",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS9318 sk broadband co ltd",
+          "top_protocols": [
+            {
+              "attack_count": 18,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS9341 pt indonesia comnets plus",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS9381 hkbn enterprise solutions hk limited",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS9498 bharti airtel ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS9802 abitcool(china) inc.",
+          "top_protocols": [
+            {
+              "attack_count": 2,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS9808 china mobile communications group co.  ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 25,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS9812 oriental cable network co.  ltd.",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS9829 national internet backbone",
+          "top_protocols": [
+            {
+              "attack_count": 4,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS9891 cs loxinfo public company limited.",
+          "top_protocols": [
+            {
+              "attack_count": 9,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS9924 taiwan fixed network telco and network service provider",
+          "top_protocols": [
+            {
+              "attack_count": 3,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "AS9931 the communication authority of thailand",
+          "top_protocols": [
+            {
+              "attack_count": 1,
+              "protocol": "ssh"
+            }
+          ]
+        },
+        {
+          "asn": "ASNone ",
+          "top_protocols": [
+            {
+              "attack_count": 51,
+              "protocol": "ssh"
+            },
+            {
+              "attack_count": 16,
+              "protocol": "sip"
+            },
+            {
+              "attack_count": 14,
+              "protocol": "snmp"
+            }
+          ]
+        }
+      ],
+      "error": null,
+      "analysis": {
+        "has_query": true,
+        "query_length": 386,
+        "has_error": false,
+        "error_type": "NONE",
+        "has_results": true,
+        "result_type": "list",
+        "result_count": 381,
+        "status": "SUCCESS",
+        "status_detail": "Query executed successfully and returned 381 rows"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify, for every ASN observed in the dataset, which network/application protocols are most frequently associated with attacks targeting France, returning the top 3 protocols per ASN based on attack occurrence counts.\",\n  \"KEY_ENTITIES\": {\n    \"nodes\": [\n      \"(:IP {address, botnet, pulse_ids})\",\n      \"(:Country {name})\",\n      \"(:ASN {number})\"\n    ],\n    \"relationships\": [\n      \"(ip:IP)-[:ATTACKS {technique, protocol, technology, industry, pulse_id, documented_create_date, documented_modified_date}]->(country:Country)\",\n      \"(ip:IP)-[:BELONGS_TO]->(asn:ASN)\"\n    ],\n    \"notes\": [\n      \"The ASN attribution comes from the IP via BELONGS_TO.\",\n      \"The attack target country is determined by the ATTACKS relationship end node (Country).\",\n      \"The IP origin country (ip)-[:FROM]->(country) is not required unless the user later wants to restrict by attacker geography.\"\n    ]\n  },\n  \"FILTERS\": [\n    \"Only include ATTACKS relationships where the target country name equals \\\"France\\\".\",\n    \"Only include IPs that have a BELONGS_TO relationship to an ASN (so each attack can be attributed to an ASN).\",\n    \"Protocol must be taken from ATTACKS.protocol; decide whether to exclude null/empty protocol values (recommended to exclude to avoid meaningless 'unknown' entries unless explicitly desired).\"\n  ],\n  \"OUTPUT_FORMAT\": \"Return one row/object per ASN (asn.number), with a list/array of up to 3 protocol entries sorted by descending attack count. Each protocol entry should include the protocol value and its corresponding count for attacks against France. If ties occur around rank 3, apply a deterministic tie-break (e.g., protocol name ascending) or allow more than 3 only if explicitly requested.\",\n  \"SUGGESTED_APPROACH\": \"Traverse from IPs to their ASN via BELONGS_TO, and from the same IPs through ATTACKS to the Country node filtered to France. Aggregate the number of ATTACKS per (ASN, protocol). For each ASN, sort protocols by descending count (and a secondary tie-break if needed), then keep only the top 3 protocols. Present results grouped by ASN with the top-3 protocol breakdown.\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"For each ASN, count attacks against the Country named \\\"France\\\" by ATTACKS.protocol (attributing attacks via IP->BELONGS_TO->ASN), then return the top 3 protocols per ASN ordered by descending count (with a deterministic tie-break if needed).\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "For each ASN, count attacks against the Country named \"France\" by ATTACKS.protocol (attributing attacks via IP->BELONGS_TO->ASN), then return the top 3 protocols per ASN ordered by descending count (with a deterministic tie-break if needed)."
+          ]
+        },
+        "generation": {
+          "fragments": [
+            "MATCH (ip:IP)-[r:ATTACKS]->(c:Country)\nMATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nWHERE c.name = \"France\" AND r.protocol <> \"unknown\"\nWITH asn, r.protocol AS protocol, count(*) AS attack_count\nORDER BY asn.number, attack_count DESC, protocol ASC\nWITH asn, collect({protocol: protocol, attack_count: attack_count})[0..3] AS top_protocols\nRETURN asn.number AS asn, top_protocols\nORDER BY asn ASC"
+          ],
+          "trace": [
+            {
+              "subproblem": "For each ASN, count attacks against the Country named \"France\" by ATTACKS.protocol (attributing attacks via IP->BELONGS_TO->ASN), then return the top 3 protocols per ASN ordered by descending count (with a deterministic tie-break if needed).",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(c:Country)\nMATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nWHERE c.name = \"France\" AND r.protocol <> \"unknown\"\nWITH asn, r.protocol AS protocol, count(*) AS attack_count\nORDER BY asn.number, attack_count DESC, protocol ASC\nWITH asn, collect({protocol: protocol, attack_count: attack_count})[0..3] AS top_protocols\nRETURN asn.number AS asn, top_protocols\nORDER BY asn ASC",
+                  "matched_pairs": [
+                    {
+                      "kind": "node",
+                      "label": "Country",
+                      "property": "name",
+                      "original": "France",
+                      "value": "France"
+                    }
+                  ],
+                  "ok": true,
+                  "error": null,
+                  "rows_preview": [
+                    {
+                      "asn": "AS10103 hk broadband network ltd.",
+                      "top_protocols": [
+                        {
+                          "attack_count": 1,
+                          "protocol": "ssh"
+                        }
+                      ]
+                    },
+                    {
+                      "asn": "AS10220 pt. kreasi sejahtera teknologi",
+                      "top_protocols": [
+                        {
+                          "attack_count": 2,
+                          "protocol": "ssh"
+                        }
+                      ]
+                    },
+                    {
+                      "asn": "AS10299 empresas municipales de cali e.i.c.e. e.s.p.",
+                      "top_protocols": [
+                        {
+                          "attack_count": 4,
+                          "protocol": "ssh"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": "MATCH (ip:IP)-[r:ATTACKS]->(c:Country)\nMATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nWHERE c.name = \"France\" AND r.protocol <> \"unknown\"\nWITH asn, r.protocol AS protocol, count(*) AS attack_count\nORDER BY asn.number, attack_count DESC, protocol ASC\nWITH asn, collect({protocol: protocol, attack_count: attack_count})[0..3] AS top_protocols\nRETURN asn.number AS asn, top_protocols\nORDER BY asn ASC"
+        },
+        "final_validation": {
+          "trace": null,
+          "error": null,
+          "results_preview": [
+            {
+              "asn": "AS10103 hk broadband network ltd.",
+              "top_protocols": [
+                {
+                  "attack_count": 1,
+                  "protocol": "ssh"
+                }
+              ]
+            },
+            {
+              "asn": "AS10220 pt. kreasi sejahtera teknologi",
+              "top_protocols": [
+                {
+                  "attack_count": 2,
+                  "protocol": "ssh"
+                }
+              ]
+            },
+            {
+              "asn": "AS10299 empresas municipales de cali e.i.c.e. e.s.p.",
+              "top_protocols": [
+                {
+                  "attack_count": 4,
+                  "protocol": "ssh"
+                }
+              ]
+            }
+          ]
+        },
+        "explanation": {
+          "text": "This query finds, for each ASN, the top three most-used non\u2011\u201cunknown\u201d attack protocols in ATTACKS events targeting France (ranked by count) and returns them ordered by ASN number."
+        }
+      },
+      "token_usage": {
+        "input": 1564,
+        "output": 1180,
+        "total": 2744
+      },
+      "duration_seconds": 38.848,
+      "started_at": "2026-02-20T06:49:33.715232+00:00",
+      "ended_at": "2026-02-20T06:50:12.563360+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:50:12.539016+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 12,
+      "category": "impossible",
+      "prompt": "List the top 5 malware families used in attacks.",
+      "expected_cypher": "RETURN 'Not enough information in schema (no malware family)' AS note",
+      "agent_cypher": "MATCH (ip:IP)-[a:ATTACKS]->(c:Country)\nWHERE ip.botnet IS NOT NULL AND trim(ip.botnet) <> '' AND toLower(trim(ip.botnet)) <> 'unknown'\nWITH ip.botnet AS botnet, count(*) AS attack_count\nORDER BY attack_count DESC, botnet ASC\nLIMIT 5\nRETURN botnet, attack_count",
+      "response": [
+        {
+          "botnet": "botnet",
+          "attack_count": 73462
+        },
+        {
+          "botnet": "mirai",
+          "attack_count": 36090
+        }
+      ],
+      "error": null,
+      "analysis": {
+        "has_query": true,
+        "query_length": 260,
+        "has_error": false,
+        "error_type": "NONE",
+        "has_results": true,
+        "result_type": "list",
+        "result_count": 2,
+        "status": "SUCCESS",
+        "status_detail": "Query executed successfully and returned 2 rows"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify which malware families are most frequently associated with observed attacks in the dataset, returning the top 5 families by prevalence.\",\n  \"KEY_ENTITIES\": {\n    \"NODES\": [\n      \"(:IP {address, botnet, pulse_ids})\",\n      \"(:Country {name})\"\n    ],\n    \"RELATIONSHIPS\": [\n      \"(ip:IP)-[:ATTACKS {technique, protocol, technology, industry, pulse_id, documented_create_date, documented_modified_date}]->(country:Country)\"\n    ],\n    \"NOTES\": \"The schema does not include an explicit 'malware_family' field. The closest available attribute is IP.botnet, which is likely being used as a proxy for 'malware family' in this question.\"\n  },\n  \"FILTERS\": {\n    \"REQUIRED\": [\n      \"Include only IP nodes that have at least one outgoing :ATTACKS relationship\",\n      \"Use IP.botnet as the malware family identifier\",\n      \"Exclude records where IP.botnet is missing, null, or an empty/unknown placeholder (to avoid counting non-family values)\"\n    ],\n    \"OPTIONAL_CLARIFICATIONS\": [\n      \"Define what 'top' means: count of :ATTACKS relationships (default) vs. count of distinct pulse_id values vs. count of distinct IPs per family\",\n      \"Whether to deduplicate repeated attacks (e.g., same ip+country+attack.pulse_id) if duplicates exist\"\n    ]\n  },\n  \"OUTPUT_FORMAT\": {\n    \"TYPE\": \"Ranked list (top 5)\",\n    \"FIELDS\": [\n      \"malware_family (from IP.botnet)\",\n      \"attack_count (number of matching :ATTACKS relationships, unless otherwise specified)\"\n    ],\n    \"ORDERING\": \"Descending by attack_count, then malware_family ascending as a stable tie-breaker\",\n    \"LIMIT\": 5\n  },\n  \"SUGGESTED_APPROACH\": \"Traverse from IP nodes through outgoing :ATTACKS relationships to Country, group the results by the IP.botnet value (treated as malware family), compute the chosen prevalence metric (typically count of attacks), filter out null/empty/unknown botnet values, sort by the metric descending, and return the top 5 families with their counts.\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Return the top 5 values of IP.botnet (treated as malware families) ranked by the number of associated :ATTACKS relationships, excluding null/empty/unknown botnet values, along with their attack counts.\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Return the top 5 values of IP.botnet (treated as malware families) ranked by the number of associated :ATTACKS relationships, excluding null/empty/unknown botnet values, along with their attack counts."
+          ]
+        },
+        "generation": {
+          "fragments": [
+            "MATCH (ip:IP)-[a:ATTACKS]->(c:Country)\nWHERE ip.botnet IS NOT NULL AND trim(ip.botnet) <> '' AND toLower(trim(ip.botnet)) <> 'unknown'\nWITH ip.botnet AS botnet, count(*) AS attack_count\nORDER BY attack_count DESC, botnet ASC\nLIMIT 5\nRETURN botnet, attack_count"
+          ],
+          "trace": [
+            {
+              "subproblem": "Return the top 5 values of IP.botnet (treated as malware families) ranked by the number of associated :ATTACKS relationships, excluding null/empty/unknown botnet values, along with their attack counts.",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[a:ATTACKS]->(c:Country)\nWHERE ip.botnet IS NOT NULL AND trim(ip.botnet) <> '' AND toLower(trim(ip.botnet)) <> 'unknown'\nWITH ip.botnet AS botnet, count(*) AS attack_count\nORDER BY attack_count DESC, botnet ASC\nLIMIT 5\nRETURN botnet, attack_count",
+                  "matched_pairs": [],
+                  "ok": true,
+                  "error": null,
+                  "rows_preview": [
+                    {
+                      "botnet": "botnet",
+                      "attack_count": 73462
+                    },
+                    {
+                      "botnet": "mirai",
+                      "attack_count": 36090
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": "MATCH (ip:IP)-[a:ATTACKS]->(c:Country)\nWHERE ip.botnet IS NOT NULL AND trim(ip.botnet) <> '' AND toLower(trim(ip.botnet)) <> 'unknown'\nWITH ip.botnet AS botnet, count(*) AS attack_count\nORDER BY attack_count DESC, botnet ASC\nLIMIT 5\nRETURN botnet, attack_count"
+        },
+        "final_validation": {
+          "trace": null,
+          "error": null,
+          "results_preview": [
+            {
+              "botnet": "botnet",
+              "attack_count": 73462
+            },
+            {
+              "botnet": "mirai",
+              "attack_count": 36090
+            }
+          ]
+        },
+        "explanation": {
+          "text": "This query finds IPs with a known (non-empty, non-\u201cunknown\u201d) botnet label, counts how many `ATTACKS` relationships are associated with each botnet, and returns the top 5 botnets by attack count."
+        }
+      },
+      "token_usage": {
+        "input": 1473,
+        "output": 1017,
+        "total": 2490
+      },
+      "duration_seconds": 21.602,
+      "started_at": "2026-02-20T06:50:12.564555+00:00",
+      "ended_at": "2026-02-20T06:50:34.166282+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:50:34.153586+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 13,
+      "category": "impossible",
+      "prompt": "What destination ports are most targeted?",
+      "expected_cypher": "RETURN 'Not enough information in schema (no destination port)' AS note",
+      "agent_cypher": "MATCH (ip:IP)-[r:ATTACKS]->(country:Country)\nWHERE r.protocol <> 'unknown'\nWITH r,\nCASE\n  WHEN r.technique IS NULL THEN NULL\n  WHEN r.technique CONTAINS ':' THEN toInteger(last(split(r.technique, ':')))\n  WHEN r.technique CONTAINS '/' THEN toInteger(last(split(r.technique, '/')))\n  ELSE toInteger(r.technique)\nEND AS port\nWHERE port IS NOT NULL\nWITH r.protocol AS protocol, port, count(*) AS attack_count\nRETURN protocol, port, attack_count\nORDER BY attack_count DESC, protocol ASC, port ASC",
+      "response": [],
+      "error": null,
+      "analysis": {
+        "has_query": true,
+        "query_length": 492,
+        "has_error": false,
+        "error_type": "NONE",
+        "has_results": true,
+        "result_type": "list",
+        "result_count": 0,
+        "status": "SUCCESS_ZERO_ROWS",
+        "status_detail": "Query executed successfully but returned no data"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify which destination network ports are being targeted most frequently in the recorded attack activity, i.e., rank destination ports by how often they appear in attack events.\",\n  \"KEY_ENTITIES\": {\n    \"nodes\": [\n      \"(:IP {address, botnet, pulse_ids}) as the attacking/source IP\",\n      \"(:Country {name}) as the attacked destination country (target context)\"\n    ],\n    \"relationships\": [\n      \"(ip:IP)-[:ATTACKS {technique, protocol, technology, industry, pulse_id, documented_create_date, documented_modified_date}]->(country:Country) as the attack event record to aggregate over\"\n    ],\n    \"optional_context_relationships\": [\n      \"(ip:IP)-[:FROM]->(country:Country) if the analysis later needs to segment by attacker origin country\",\n      \"(ip:IP)-[:BELONGS_TO]->(asn:ASN) if later segmentation by attacker ASN is desired\"\n    ],\n    \"notes_on_port_field\": \"The provided ATTACKS relationship properties do not explicitly include a destination port field. This analysis assumes destination port is stored either as an additional property on :ATTACKS (e.g., destination_port/port/dst_port) or encoded within an existing text field (most plausibly 'technique' or 'technology'). The exact storage location should be confirmed before generating the final query.\"\n  },\n  \"FILTERS\": {\n    \"required\": [\n      \"Only include ATTACKS relationships where a destination port value can be extracted or is present (exclude null/unknown ports).\"\n    ],\n    \"optional_refinements_if_needed\": [\n      \"Time window based on documented_create_date and/or documented_modified_date (e.g., last 30/90 days).\",\n      \"Restrict by protocol (e.g., TCP vs UDP) if port meaning is protocol-dependent.\",\n      \"Restrict by technology/industry/technique, botnet flag, specific pulse_id, target country, attacker origin country, or attacker ASN if the user later asks for breakdowns.\"\n    ]\n  },\n  \"OUTPUT_FORMAT\": \"Return a ranked list (top-N) of destination ports with at least: destination_port, attack_count. Optionally include protocol and percentage of total attacks. Sort by attack_count descending; include a limit (e.g., top 10 or top 20).\",\n  \"SUGGESTED_APPROACH\": \"Treat each :ATTACKS relationship as an attack record. Determine where destination port is stored (direct property vs parsed from a text field). Extract/normalize the destination port into a consistent numeric/string value, filter out missing/invalid values, then group attack records by destination port (and optionally by protocol). Count occurrences per port, sort descending, and return the top results with counts (and optionally shares).\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Aggregate all :ATTACKS relationships by destination port (extracting/reading the port value from the appropriate field), count how many attacks target each port, and return the ports ranked from most to least targeted (optionally separated by protocol).\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Aggregate all :ATTACKS relationships by destination port (extracting/reading the port value from the appropriate field), count how many attacks target each port, and return the ports ranked from most to least targeted (optionally separated by protocol)."
+          ]
+        },
+        "generation": {
+          "fragments": [
+            "MATCH (ip:IP)-[r:ATTACKS]->(country:Country)\nWHERE r.protocol <> 'unknown'\nWITH r,\nCASE\n  WHEN r.technique IS NULL THEN NULL\n  WHEN r.technique CONTAINS ':' THEN toInteger(last(split(r.technique, ':')))\n  WHEN r.technique CONTAINS '/' THEN toInteger(last(split(r.technique, '/')))\n  ELSE toInteger(r.technique)\nEND AS port\nWHERE port IS NOT NULL\nWITH r.protocol AS protocol, port, count(*) AS attack_count\nRETURN protocol, port, attack_count\nORDER BY attack_count DESC, protocol ASC, port ASC"
+          ],
+          "trace": [
+            {
+              "subproblem": "Aggregate all :ATTACKS relationships by destination port (extracting/reading the port value from the appropriate field), count how many attacks target each port, and return the ports ranked from most to least targeted (optionally separated by protocol).",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(country:Country)\nWHERE r.protocol <> 'unknown'\nWITH r,\nCASE\n  WHEN r.technique IS NULL THEN NULL\n  WHEN r.technique CONTAINS ':' THEN toInteger(last(split(r.technique, ':')))\n  WHEN r.technique CONTAINS '/' THEN toInteger(last(split(r.technique, '/')))\n  ELSE toInteger(r.technique)\nEND AS port\nWHERE port IS NOT NULL\nWITH r.protocol AS protocol, port, count(*) AS attack_count\nRETURN protocol, port, attack_count\nORDER BY attack_count DESC, protocol ASC, port ASC",
+                  "matched_pairs": [],
+                  "ok": true,
+                  "error": null,
+                  "rows_preview": []
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": "MATCH (ip:IP)-[r:ATTACKS]->(country:Country)\nWHERE r.protocol <> 'unknown'\nWITH r,\nCASE\n  WHEN r.technique IS NULL THEN NULL\n  WHEN r.technique CONTAINS ':' THEN toInteger(last(split(r.technique, ':')))\n  WHEN r.technique CONTAINS '/' THEN toInteger(last(split(r.technique, '/')))\n  ELSE toInteger(r.technique)\nEND AS port\nWHERE port IS NOT NULL\nWITH r.protocol AS protocol, port, count(*) AS attack_count\nRETURN protocol, port, attack_count\nORDER BY attack_count DESC, protocol ASC, port ASC"
+        },
+        "final_validation": {
+          "trace": null,
+          "error": null,
+          "results_preview": []
+        },
+        "explanation": {
+          "text": "This query extracts numeric ports from the `r.technique` field on `ATTACKS` relationships (excluding `protocol = 'unknown'`), then groups and counts attacks by `(protocol, port)` and returns the most frequent combinations first."
+        }
+      },
+      "token_usage": {
+        "input": 1577,
+        "output": 2014,
+        "total": 3591
+      },
+      "duration_seconds": 383.93,
+      "started_at": "2026-02-20T06:50:34.167079+00:00",
+      "ended_at": "2026-02-20T06:56:58.097211+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:56:58.062013+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 14,
+      "category": "matcher-needed",
+      "prompt": "How many attacks used technique ' Phishing' against Australia?",
+      "expected_cypher": "MATCH (:IP)-[a:ATTACKS {technique:'T1566 Phishing'}]->(:Country {name:'Australia'})\nRETURN count(a) AS attacks",
+      "agent_cypher": "MATCH (ip:IP)-[r:ATTACKS]->(c:Country {name: 'Australia'})\nWHERE toLower(trim(r.technique)) = 't1566 phishing'\nRETURN count(r) AS attack_count",
+      "response": [
+        {
+          "attack_count": 156
+        }
+      ],
+      "error": null,
+      "analysis": {
+        "has_query": true,
+        "query_length": 142,
+        "has_error": false,
+        "error_type": "NONE",
+        "has_results": true,
+        "result_type": "list",
+        "result_count": 1,
+        "status": "SUCCESS",
+        "status_detail": "Query executed successfully and returned 1 rows"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Determine the total number of recorded attack events targeting Australia where the attack technique is Phishing, based on the ATTACKS relationships in the graph.\",\n  \"KEY_ENTITIES\": {\n    \"nodes\": [\n      \"IP (source of the attack, via outgoing ATTACKS relationship)\",\n      \"Country (target country of the attack, specifically Australia)\"\n    ],\n    \"relationships\": [\n      \"(:IP)-[:ATTACKS]->(:Country) with properties including technique (used to identify Phishing) and pulse_id/dates (contextual metadata)\"\n    ],\n    \"notes\": [\n      \"The optional relationships (:IP)-[:FROM]->(:Country) and (:IP)-[:BELONGS_TO]->(:ASN) exist in the schema but are not required to answer the question unless the user later wants attribution by origin country or ASN.\"\n    ]\n  },\n  \"FILTERS\": {\n    \"target_country\": \"Australia (match Country.name)\",\n    \"attack_technique\": \"Phishing (match ATTACKS.technique; trim leading/trailing whitespace and use case-insensitive comparison if data quality is inconsistent)\",\n    \"counting_rule\": \"Count ATTACKS relationships that meet the filters (i.e., each qualifying relationship instance is an 'attack' record)\"\n  },\n  \"OUTPUT_FORMAT\": {\n    \"type\": \"single scalar result\",\n    \"fields\": [\n      {\n        \"name\": \"attack_count\",\n        \"description\": \"Number of ATTACKS records with technique=Phishing targeting Australia\"\n      }\n    ]\n  },\n  \"SUGGESTED_APPROACH\": \"Locate Country nodes representing Australia, traverse incoming ATTACKS relationships from IP nodes, filter those relationships to technique equal to Phishing (accounting for potential whitespace/case variations), and return the total count of matching ATTACKS records.\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Count the number of ATTACKS relationships from any IP to the Country named 'Australia' where the ATTACKS.technique is 'Phishing' (handling possible whitespace/case inconsistencies), and return the total as attack_count.\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Count the number of ATTACKS relationships from any IP to the Country named 'Australia' where the ATTACKS.technique is 'Phishing' (handling possible whitespace/case inconsistencies), and return the total as attack_count."
+          ]
+        },
+        "generation": {
+          "fragments": [
+            "MATCH (ip:IP)-[r:ATTACKS]->(c:Country {name: 'Australia'})\nWHERE toLower(trim(r.technique)) = 't1566 phishing'\nRETURN count(r) AS attack_count"
+          ],
+          "trace": [
+            {
+              "subproblem": "Count the number of ATTACKS relationships from any IP to the Country named 'Australia' where the ATTACKS.technique is 'Phishing' (handling possible whitespace/case inconsistencies), and return the total as attack_count.",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(c:Country {name: 'Australia'})\nWHERE toLower(trim(r.technique)) = 't1566 phishing'\nRETURN count(r) AS attack_count",
+                  "matched_pairs": [
+                    {
+                      "kind": "relationship",
+                      "label": "ATTACKS",
+                      "property": "technique",
+                      "original": "'phishing'",
+                      "value": "T1566 Phishing"
+                    }
+                  ],
+                  "ok": true,
+                  "error": null,
+                  "rows_preview": [
+                    {
+                      "attack_count": 156
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": "MATCH (ip:IP)-[r:ATTACKS]->(c:Country {name: 'Australia'})\nWHERE toLower(trim(r.technique)) = 't1566 phishing'\nRETURN count(r) AS attack_count"
+        },
+        "final_validation": {
+          "trace": null,
+          "error": null,
+          "results_preview": [
+            {
+              "attack_count": 156
+            }
+          ]
+        },
+        "explanation": {
+          "text": "It counts how many `ATTACKS` relationships from any `IP` node to the `Country` node named **Australia** have a `technique` field that (after trimming and lowercasing) exactly equals **\"t1566 phishing\"**."
+        }
+      },
+      "token_usage": {
+        "input": 1407,
+        "output": 686,
+        "total": 2093
+      },
+      "duration_seconds": 21.49,
+      "started_at": "2026-02-20T06:56:58.100981+00:00",
+      "ended_at": "2026-02-20T06:57:19.590559+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:57:19.576817+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 15,
+      "category": "complex",
+      "prompt": "Identify pairs of ASNs that both attacked the same country using the same technique within the same month; return top 10 pairs by co-attack count.",
+      "expected_cypher": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[a:ATTACKS]->(c:Country)\nWITH c.name AS country, a.technique AS technique, substring(toString(a.documented_create_date[0]),0,7) AS year_month, asn.number AS asn\nWITH country, technique, year_month, collect(DISTINCT asn)[0..50] AS asns\nUNWIND range(0, size(asns)-2) AS i\nUNWIND range(i+1, size(asns)-1) AS j\nWITH asns[i] AS asnA, asns[j] AS asnB, country, technique, year_month\nRETURN asnA, asnB, country, technique, year_month, count(*) AS co_attacks\nORDER BY co_attacks DESC\nLIMIT 10",
+      "agent_cypher": "MATCH (ip:IP)-[a:ATTACKS]->(victim:Country)\nMATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nWITH\n  victim.name AS country,\n  a.technique AS technique,\n  date.truncate('month', a.documented_create_date) AS year_month,\n  collect(DISTINCT asn.number) AS asns\nWHERE size(asns) >= 2\nUNWIND range(0, size(asns) - 2) AS i\nUNWIND range(i + 1, size(asns) - 1) AS j\nWITH\n  CASE WHEN asns[i] <= asns[j] THEN asns[i] ELSE asns[j] END AS asn1,\n  CASE WHEN asns[i] <= asns[j] THEN asns[j] ELSE asns[i] END AS asn2\nRETURN asn1, asn2, count(*) AS co_attack_context_count\nORDER BY co_attack_context_count DESC, asn1 ASC, asn2 ASC\nLIMIT 10",
+      "response": [
+        {
+          "asn1": "AS29789 reflected networks  inc.",
+          "asn2": "AS57523 chang way technologies co. limited",
+          "co_attack_context_count": 2800
+        },
+        {
+          "asn1": "AS53334 total uptime technologies  llc",
+          "asn2": "AS57523 chang way technologies co. limited",
+          "co_attack_context_count": 2619
+        },
+        {
+          "asn1": "AS29789 reflected networks  inc.",
+          "asn2": "AS53334 total uptime technologies  llc",
+          "co_attack_context_count": 2580
+        },
+        {
+          "asn1": "AS13335 cloudflare",
+          "asn2": "AS53334 total uptime technologies  llc",
+          "co_attack_context_count": 1035
+        },
+        {
+          "asn1": "AS53334 total uptime technologies  llc",
+          "asn2": "AS54113 fastly",
+          "co_attack_context_count": 1012
+        },
+        {
+          "asn1": "AS13335 cloudflare",
+          "asn2": "AS54113 fastly",
+          "co_attack_context_count": 977
+        },
+        {
+          "asn1": "AS16509 amazon.com inc",
+          "asn2": "AS54113 fastly",
+          "co_attack_context_count": 637
+        },
+        {
+          "asn1": "AS13335 cloudflare",
+          "asn2": "AS16509 amazon.com inc",
+          "co_attack_context_count": 580
+        },
+        {
+          "asn1": "AS16509 amazon.com inc",
+          "asn2": "AS53334 total uptime technologies  llc",
+          "co_attack_context_count": 575
+        },
+        {
+          "asn1": "AS16509 amazon.com inc",
+          "asn2": "AS7922 comcast",
+          "co_attack_context_count": 529
+        }
+      ],
+      "error": null,
+      "analysis": {
+        "has_query": true,
+        "query_length": 609,
+        "has_error": false,
+        "error_type": "NONE",
+        "has_results": true,
+        "result_type": "list",
+        "result_count": 10,
+        "status": "SUCCESS",
+        "status_detail": "Query executed successfully and returned 10 rows"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Find collaborating or coincident attacker infrastructure by identifying ASN pairs whose IPs targeted the same victim country with the same attack technique during the same calendar month, then rank those ASN pairs by how often they co-occur in such shared attack contexts (top 10).\",\n  \"KEY_ENTITIES\": \"Relevant nodes: IP (attacker/source IP), ASN (network owner for attacker IP), Country (victim country being attacked). Relevant relationships: IP ATTACKS Country (contains technique and attack timestamps/metadata), IP BELONGS_TO ASN (maps attacker IP to an ASN). Optional context relationship: IP FROM Country (attacker origin country; not required for the core question unless the user also wants to constrain by attacker origin). Key properties: ATTACKS.technique (must match), ATTACKS.documented_create_date (used to derive month; alternatively documented_modified_date if create date is missing/less reliable), ASN.number (pair identity), Country.name (victim identity).\",\n  \"FILTERS\": \"1) Two distinct ASNs (exclude pairing an ASN with itself). 2) Both ASNs must have at least one IP that performed an ATTACKS relationship to the same victim Country. 3) The ATTACKS.technique must be the same for both ASNs in the matched co-attack context. 4) The attacks must fall within the same calendar month (derive a month bucket from ATTACKS.documented_create_date; define month consistently as YYYY-MM in a single timezone/standard). 5) Define a deterministic ordering for pairs (e.g., smaller ASN number first) to avoid duplicate mirrored pairs. 6) Co-attack count definition should be consistent\u2014recommended: count distinct shared (victim country, technique, month) contexts in which both ASNs appear; optionally count distinct attack events if multiple IPs/records per ASN per context exist (deduplicate to avoid inflation).\",\n  \"OUTPUT_FORMAT\": \"Return a ranked list of 10 records. Each record should include: asn_1, asn_2, co_attack_count. Optionally include supporting details such as the number of distinct shared victim countries, distinct techniques, and distinct months contributing to the count, and/or a small sample of top contributing (country, technique, month) contexts for interpretability.\",\n  \"SUGGESTED_APPROACH\": \"1) Start from attack events by linking attacker IPs to their ASNs and to the victim countries they attacked. 2) Normalize time by converting the attack timestamp into a month bucket. 3) Group attack activity by (victim country, technique, month, ASN) to create a presence indicator per ASN in each context, deduplicating multiple IPs/records for the same ASN within the same context. 4) Within each (country, technique, month) context, generate all unique pairs of ASNs that are present (ensure stable ordering and exclude self-pairs). 5) Aggregate these pairs across all contexts to compute a co-attack count per pair. 6) Sort pairs by co-attack count descending and return the top 10.\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Compute the top 10 unique ASN pairs that both appear attacking the same victim country with the same technique in the same calendar month (month derived from ATTACKS documented_create_date), where the pair\u2019s score is the number of distinct (country, technique, month) co-attack contexts they share, and return each pair with its co-attack count.\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Compute the top 10 unique ASN pairs that both appear attacking the same victim country with the same technique in the same calendar month (month derived from ATTACKS documented_create_date), where the pair\u2019s score is the number of distinct (country, technique, month) co-attack contexts they share, and return each pair with its co-attack count."
+          ]
+        },
+        "generation": {
+          "fragments": [
+            "MATCH (ip:IP)-[a:ATTACKS]->(victim:Country)\nMATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nWITH\n  victim.name AS country,\n  a.technique AS technique,\n  date.truncate('month', a.documented_create_date) AS year_month,\n  collect(DISTINCT asn.number) AS asns\nWHERE size(asns) >= 2\nUNWIND range(0, size(asns) - 2) AS i\nUNWIND range(i + 1, size(asns) - 1) AS j\nWITH\n  CASE WHEN asns[i] <= asns[j] THEN asns[i] ELSE asns[j] END AS asn1,\n  CASE WHEN asns[i] <= asns[j] THEN asns[j] ELSE asns[i] END AS asn2\nRETURN asn1, asn2, count(*) AS co_attack_context_count\nORDER BY co_attack_context_count DESC, asn1 ASC, asn2 ASC\nLIMIT 10"
+          ],
+          "trace": [
+            {
+              "subproblem": "Compute the top 10 unique ASN pairs that both appear attacking the same victim country with the same technique in the same calendar month (month derived from ATTACKS documented_create_date), where the pair\u2019s score is the number of distinct (country, technique, month) co-attack contexts they share, and return each pair with its co-attack count.",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[a:ATTACKS]->(victim:Country)\nMATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nWITH\n  victim.name AS country,\n  a.technique AS technique,\n  date.truncate('month', a.documented_create_date) AS year_month,\n  collect(DISTINCT asn.number) AS asns\nWHERE size(asns) >= 2\nWITH country, technique, year_month, asns, range(0, size(asns) - 2) AS idxs\nUNWIND idxs AS i\nUNWIND range(i + 1, size(asns) - 1) AS j\nWITH\n  country, technique, year_month,\n  CASE WHEN asns[i] < asns[j] THEN asns[i] ELSE asns[j] END AS asn1,\n  CASE WHEN asns[i] < asns[j] THEN asns[j] ELSE asns[i] END AS asn2\nWITH asn1, asn2, count(DISTINCT [country, technique, year_month]) AS co_attack_count\nORDER BY co_attack_count DESC, asn1 ASC, asn2 ASC\nLIMIT 10\nRETURN asn1, asn2, co_attack_count",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "{neo4j_code: Neo.TransientError.General.MemoryPoolOutOfMemoryError} {message: The allocation of an extra 2.0 MiB would use more than the limit 716.8 MiB. Currently using 716.0 MiB. dbms.memory.transaction.total.max threshold reached} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.}",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (ip:IP)-[a:ATTACKS]->(victim:Country)\nMATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nWITH\n  victim.name AS country,\n  a.technique AS technique,\n  date.truncate('month', a.documented_create_date) AS year_month,\n  collect(DISTINCT asn.number) AS asns\nWHERE size(asns) >= 2\nUNWIND range(0, size(asns) - 2) AS i\nUNWIND range(i + 1, size(asns) - 1) AS j\nWITH\n  CASE WHEN asns[i] <= asns[j] THEN asns[i] ELSE asns[j] END AS asn1,\n  CASE WHEN asns[i] <= asns[j] THEN asns[j] ELSE asns[i] END AS asn2\nRETURN asn1, asn2, count(*) AS co_attack_context_count\nORDER BY co_attack_context_count DESC, asn1 ASC, asn2 ASC\nLIMIT 10",
+                  "matched_pairs": [],
+                  "ok": true,
+                  "error": null,
+                  "rows_preview": [
+                    {
+                      "asn1": "AS29789 reflected networks  inc.",
+                      "asn2": "AS57523 chang way technologies co. limited",
+                      "co_attack_context_count": 2800
+                    },
+                    {
+                      "asn1": "AS53334 total uptime technologies  llc",
+                      "asn2": "AS57523 chang way technologies co. limited",
+                      "co_attack_context_count": 2619
+                    },
+                    {
+                      "asn1": "AS29789 reflected networks  inc.",
+                      "asn2": "AS53334 total uptime technologies  llc",
+                      "co_attack_context_count": 2580
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": "MATCH (ip:IP)-[a:ATTACKS]->(victim:Country)\nMATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nWITH\n  victim.name AS country,\n  a.technique AS technique,\n  date.truncate('month', a.documented_create_date) AS year_month,\n  collect(DISTINCT asn.number) AS asns\nWHERE size(asns) >= 2\nUNWIND range(0, size(asns) - 2) AS i\nUNWIND range(i + 1, size(asns) - 1) AS j\nWITH\n  CASE WHEN asns[i] <= asns[j] THEN asns[i] ELSE asns[j] END AS asn1,\n  CASE WHEN asns[i] <= asns[j] THEN asns[j] ELSE asns[i] END AS asn2\nRETURN asn1, asn2, count(*) AS co_attack_context_count\nORDER BY co_attack_context_count DESC, asn1 ASC, asn2 ASC\nLIMIT 10"
+        },
+        "final_validation": {
+          "trace": null,
+          "error": null,
+          "results_preview": [
+            {
+              "asn1": "AS29789 reflected networks  inc.",
+              "asn2": "AS57523 chang way technologies co. limited",
+              "co_attack_context_count": 2800
+            },
+            {
+              "asn1": "AS53334 total uptime technologies  llc",
+              "asn2": "AS57523 chang way technologies co. limited",
+              "co_attack_context_count": 2619
+            },
+            {
+              "asn1": "AS29789 reflected networks  inc.",
+              "asn2": "AS53334 total uptime technologies  llc",
+              "co_attack_context_count": 2580
+            }
+          ]
+        },
+        "explanation": {
+          "text": "It finds the top 10 pairs of ASNs that appear together attacking the same victim country using the same technique in the same month (based on documented_create_date), ranked by how many such co-attack contexts they share."
+        }
+      },
+      "token_usage": {
+        "input": 2969,
+        "output": 2712,
+        "total": 5681
+      },
+      "duration_seconds": 120.471,
+      "started_at": "2026-02-20T06:57:19.591173+00:00",
+      "ended_at": "2026-02-20T06:59:20.062379+00:00",
+      "metadata": {
+        "time": "2026-02-20T06:59:20.041658+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    }
+  ]
+}

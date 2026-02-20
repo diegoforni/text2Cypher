@@ -23,6 +23,12 @@ class MatcherAgent:
 
     def _extract_pairs(self, query: str, schema: str) -> List[Dict[str, str]]:
         """Use the LLM to extract label/property/value triples from a Cypher query."""
+        import sys
+        print("=" * 80, file=sys.stderr)
+        print("[MATCHER] _extract_pairs called", file=sys.stderr)
+        print(f"[MATCHER] Query: {query[:200]}...", file=sys.stderr)
+        print(f"[MATCHER] Schema: {schema[:200]}...", file=sys.stderr)
+
         system_message = (
             "You are given a Cypher query for a Neo4j database. "
             "Identify literal string or numeric values that appear directly in node or relationship property comparisons. "
@@ -46,6 +52,7 @@ Use the exact value from the query.
             "match.extract_pairs",
             {"system": system_message, "prompt": prompt},
         )
+        print("[MATCHER] Calling LLM...", file=sys.stderr)
         response = self.llm.invoke([
             ("system", system_message),
             ("user", prompt),
@@ -72,7 +79,7 @@ Use the exact value from the query.
             return str(value)
 
         text = _coerce_text(raw)
-        print("[matcher] LLM response:", text)
+        print(f"[MATCHER] LLM raw response: {text}", file=sys.stderr)
         try:
             cleaned = text.strip()
             if cleaned.startswith("```"):
@@ -82,7 +89,7 @@ Use the exact value from the query.
             start, end = cleaned.find("["), cleaned.rfind("]")
             if start != -1 and end != -1:
                 cleaned = cleaned[start : end + 1]
-            print("[matcher] cleaned response:", cleaned)
+            print(f"[MATCHER] Cleaned JSON: {cleaned}", file=sys.stderr)
             pairs = json.loads(cleaned)
             if not isinstance(pairs, list):
                 raise ValueError("expected list")
@@ -96,25 +103,34 @@ Use the exact value from the query.
                 for p in pairs
                 if p.get("value")
             ]
-            print("[matcher] extracted pairs:", parsed)
+            print(f"[MATCHER] ✓ Extracted {len(parsed)} pairs: {parsed}", file=sys.stderr)
             finish_span(span, {"response": text, "pairs": parsed})
+            print("=" * 80, file=sys.stderr)
             return parsed
         except Exception as e:
-            print("[matcher] failed to parse pairs:", e)
+            print(f"[MATCHER] ✗ Failed to parse pairs: {e}", file=sys.stderr)
+            print(f"[MATCHER] Raw text was: {text[:500]}", file=sys.stderr)
             finish_span(span, {"response": text}, e)
+            print("=" * 80, file=sys.stderr)
             return []
 
     def _match_value(self, kind: str, label: str, prop: str, value: str) -> str:
         """Return the closest database value for ``label.prop`` to ``value``."""
+        import sys
+        print(f"[MATCHER] _match_value called: kind={kind}, label={label}, prop={prop}, value={value}", file=sys.stderr)
+
         if not label or not prop:
+            print(f"[MATCHER] No label or prop, returning original value", file=sys.stderr)
             return value
 
         def fetch(cypher: str) -> List[str]:
-            print(f"[matcher] running query: {cypher}")
+            print(f"[MATCHER] Running query: {cypher}", file=sys.stderr)
             with self.driver.session(database=NEO4J_DB) as session:
                 result = session.run(cypher)
                 values = [r["val"] for r in result]
-            print(f"[matcher] first rows: {values[:5]}")
+            print(f"[MATCHER] Query returned {len(values)} values", file=sys.stderr)
+            if values:
+                print(f"[MATCHER] First 5 values: {values[:5]}", file=sys.stderr)
             return values
 
         if kind.lower() == "relationship":
@@ -131,6 +147,7 @@ Use the exact value from the query.
 
         # Flatten list-valued properties into individual candidates and
         # normalize everything to strings for matching.
+        import sys
         flat: List[str] = []
         for v in results:
             if isinstance(v, list):
@@ -147,12 +164,13 @@ Use the exact value from the query.
         results = deduped
 
         if not results:
-            print(f"[matcher] no candidates found for {label}.{prop}")
+            print(f"[MATCHER] ✗ No candidates found for {label}.{prop}", file=sys.stderr)
             return value
 
+        print(f"[MATCHER] Looking for exact match (case-insensitive): '{value}' in {len(results)} candidates", file=sys.stderr)
         for candidate in results:
             if str(candidate).lower() == value.lower():
-                print(f"[matcher] exact match for {value} -> {candidate}")
+                print(f"[MATCHER] ✓ Exact match found: '{value}' -> '{candidate}'", file=sys.stderr)
                 return str(candidate)
 
         def lcs_length(a: str, b: str) -> int:
@@ -168,14 +186,19 @@ Use the exact value from the query.
                             longest = dp[i][j]
             return longest
 
+        import sys
+        print(f"[MATCHER] No exact match, trying LCS matching...", file=sys.stderr)
         scored = [
             (lcs_length(str(candidate), value), str(candidate))
             for candidate in results
         ]
         best_len, best_val = max(scored, key=lambda x: x[0])
-        print(
-            f"[matcher] best match for '{value}' -> '{best_val}' (LCS length {best_len})",
-        )
+        print(f"[MATCHER] LCS best match: '{value}' -> '{best_val}' (LCS length {best_len})", file=sys.stderr)
+        if best_len > 0:
+            print(f"[MATCHER] ✓ Using LCS match: '{best_val}'", file=sys.stderr)
+        else:
+            print(f"[MATCHER] ✗ No good match found, using original value: '{value}'", file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
         return best_val if best_len > 0 else value
 
     def match(self, query: str, schema: str) -> List[Dict[str, str]]:
@@ -184,26 +207,35 @@ Use the exact value from the query.
         Returns a list of dictionaries with the original extracted value under
         ``original`` and the database-resolved value under ``value``.
         """
+        import sys
+        print("=" * 80, file=sys.stderr)
+        print("[MATCHER] match() called", file=sys.stderr)
+        print(f"[MATCHER] Query: {query[:200]}...", file=sys.stderr)
         span = start_span(
             self.langfuse, "match", {"query": query, "schema": schema}
         )
         extracted = self._extract_pairs(query, schema)
-        print("[matcher] pairs after extraction:", extracted)
+        print(f"[MATCHER] Extraction complete. Got {len(extracted)} pairs", file=sys.stderr)
 
         def resolve(pair: Dict[str, str]) -> Dict[str, str]:
+            print(f"[MATCHER] Resolving pair: {pair}", file=sys.stderr)
             matched = self._match_value(
                 pair["kind"], pair["label"], pair["property"], pair["value"]
             )
-            return {
+            result = {
                 "kind": pair["kind"],
                 "label": pair["label"],
                 "property": pair["property"],
                 "original": pair["value"],
                 "value": matched,
             }
+            print(f"[MATCHER] Resolved -> {result}", file=sys.stderr)
+            return result
 
         with ThreadPoolExecutor(max_workers=len(extracted) or 1) as executor:
             resolved = list(executor.map(resolve, extracted))
-        print("[matcher] resolved pairs:", resolved)
+        print(f"[MATCHER] All pairs resolved: {resolved}", file=sys.stderr)
+        print(f"[MATCHER] match() complete, returning {len(resolved)} pairs", file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
         finish_span(span, {"extracted": extracted, "pairs": resolved})
         return resolved

@@ -1,0 +1,124 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{cite}
+\usepackage{hyperref}
+
+\title{Text2Cypher: Natural Language to Cypher Query Translation}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+Natural language interfaces for databases have emerged as a critical area of research in human-computer interaction and data accessibility. As graph databases gain traction for managing complex, interconnected data, the need for intuitive query interfaces becomes increasingly important. This paper presents a system that translates natural language queries into Cypher, the query language for Neo4j graph databases.
+
+The proliferation of graph-structured data across domains such as social networks, biological systems, recommendation engines, and knowledge graphs has necessitated the development of specialized database management systems. Neo4j, as a leading graph database platform, employs Cypher as its primary query language—a powerful, declarative language designed for efficient graph pattern matching and traversal. However, Cypher's syntax and graph-oriented paradigm present a steep learning curve for non-technical users and even for experienced developers accustomed to relational database systems.
+
+Our Text2Cypher system addresses this challenge by leveraging large language models (LLMs) within a novel multi-agent architecture designed specifically for graph query translation. Unlike traditional single-model approaches, our system employs six specialized agents that collaborate through a LangGraph-orchestrated workflow, each responsible for a distinct aspect of the query generation pipeline. The system interprets user queries expressed in plain English, analyzes the underlying intent, decomposes complex problems when necessary, and automatically constructs syntactically correct and semantically valid Cypher queries. This approach democratizes access to graph data, enabling domain experts, analysts, and business users to extract insights without requiring deep expertise in graph database technologies or Cypher syntax.
+
+The contributions of this work include: (1) a novel multi-agent architecture for natural language to Cypher translation using state-of-the-art language models, featuring specialized components for query expansion, decomposition, generation, matching, validation, and composition, (2) a comprehensive evaluation framework assessing query accuracy across diverse complexity levels, and (3) insights into the challenges and opportunities in applying LLM-based multi-agent systems to graph database query generation.
+
+\section{Related Work}
+
+\subsection{Text-to-SQL and Relational Databases}
+
+The research on natural language to query translation has been predominantly driven by the Text-to-SQL domain, which serves as the most mature ecosystem for semantic parsing research. Recent comprehensive surveys \cite{song2024next, xu2024survey} document the evolution from early rule-based systems to modern LLM-based approaches. The development of increasingly complex benchmarks has driven architectural advancements: SPIDER \cite{yu2018spider} established baseline cross-domain evaluation, while BIRD \cite{bao2023bird} introduced large-scale schemas with dirty data, and SPIDER 2.0 \cite{jiang2025spider} added industrial-scale databases with over 1000 columns.
+
+Prompting strategies have evolved from simple zero-shot generation to sophisticated multi-path reasoning frameworks. CHASE-SQL \cite{pourreza2025chase} introduced a multi-path reasoning approach with candidate selection, achieving 73.0\% execution accuracy on BIRD through ensemble generation and instance-aware demonstration. Consistency-driven methods like DAIL-SQL and C3SQL \cite{li2023dail} employ self-consistency mechanisms with majority voting, though they remain vulnerable to semantic errors without execution feedback. Hybrid approaches such as SQL-CRAFT \cite{nath2023sql} combine SQL generation with external computational tools for arithmetic-heavy queries.
+
+A significant advancement in model training was introduced by Arctic-Text2SQL-R1 \cite{yao2025arctic}, which replaced traditional supervised fine-tuning with Group Relative Policy Optimization reinforcement learning. By using execution-only rewards rather than intermediate supervision, this approach achieved state-of-the-art results with remarkable parameter efficiency—the 32B model reached 71.83\% accuracy on BIRD, surpassing GPT-4o.
+
+For handling industrial-scale schemas, the ReFoRCE agent \cite{sun2025reforce} pioneered active column exploration and schema compression techniques. By iteratively querying the database to build localized schema representations rather than ingesting complete metadata, ReFoRCE achieved state-of-the-art scores on SPIDER 2.0-Snow (31.26\%) and SPIDER 2.0-Lite (30.35\%).
+
+Multi-turn interaction has emerged as a critical research direction through the BIRD-INTERACT benchmark \cite{jiang2025bird}, which revealed that even top-tier proprietary models achieve success rates below 18\% on dynamic, conversational query tasks, highlighting the necessity of stateful, iterative analysis capabilities.
+
+
+\subsection{Text-to-Cypher and Labeled Property Graphs}
+
+Text-to-Cypher research has historically been less explored than its SQL. Early work on domain-specific Cypher generation focused on medical consultation chatbots \cite{zhang2022knowledge} using knowledge graphs and deep learning, while more recent real-time systems \cite{gao2024real} have demonstrated practical deployments for graph databases.
+
+The CypherBench benchmark \cite{feng2024cypherbench} represents a significant contribution to the field, introducing the first large-scale evaluation framework with 11 property graphs containing 7.8 million entities and over 10,000 questions. CypherBench addresses fundamental challenges in retrieving from modern RDF knowledge graphs like Wikidata, which suffer from overly large schemas that exceed LLM context windows, resource identifier complexity, overlapping relation types, and lack of normalization. Their solution proposes property graph views on RDF structures that can be efficiently queried using Cypher. However, CypherBench's evaluation focuses primarily on zero-shot baselines (e.g., gpt-4o-mini achieving 31.43\% execution accuracy), and their framework is designed for template-based task generation rather than handling free-form natural language queries in production environments.
+
+The Multi-Agent GraphRAG framework \cite{cai2025multi} introduced a specialized architecture for Labeled Property Graphs, employing a multi-agent workflow with dedicated components for query generation, named entity extraction, verification, and execution feedback. Their self-correction loop with up to four refinement iterations yielded accuracy improvements of +10.23\% for Gemini 2.5 Pro and +6.79\% for GPT-4o on the CypherBench dataset. However, this work primarily targets retrieval-augmented generation scenarios rather than general-purpose query translation.
+
+\subsubsection{RAG vs. Text-to-Cypher: Distinct Paradigms}
+
+It is critical to distinguish between Graph Retrieval-Augmented Generation (GraphRAG) and Text-to-Cypher systems, as they serve fundamentally different purposes:
+
+\textbf{GraphRAG} systems use graph databases as external knowledge sources to augment LLM responses. The workflow typically involves: (1) retrieving relevant subgraphs or entities from the database based on the query, (2) passing this structured context to the LLM, and (3) generating a natural language response. CypherBench \cite{feng2024cypherbench} and Multi-Agent GraphRAG \cite{cai2025multi} primarily operate in this paradigm, where the goal is to leverage graph-structured knowledge to improve answer quality in RAG applications.
+
+\textbf{Text-to-Cypher} systems, in contrast, are query translation tools that convert natural language questions into executable Cypher queries for direct database interaction. The objective is not to retrieve context for answer generation, but to produce precise, executable database queries that users can run independently. This requires handling the full complexity of Cypher syntax including pattern matching, variable binding, aggregation, filtering, and path queries—capabilities that go beyond the retrieval-focused requirements of most GraphRAG systems.
+
+Our work falls squarely in the Text-to-Cypher category, targeting users who need to construct arbitrary database queries rather than retrieve information for answer generation. This distinction has significant architectural implications: while GraphRAG systems can tolerate approximate matching or partial retrieval since the LLM can synthesize answers from incomplete information, Text-to-Cypher systems must produce syntactically exact and semantically correct queries, as even minor errors will cause execution failures.
+
+\subsubsection{Our Architectural Contributions}
+
+Compared to prior work, our multi-agent architecture introduces several novel capabilities specific to Text-to-Cypher translation:
+
+\textbf{Query Decomposition:} Unlike CypherBench's template-based approach or Multi-Agent GraphRAG's single-query focus, our Decomposition Agent breaks complex multi-objective queries into independent subproblems, enabling parallel processing and reducing complexity—a technique pioneered in Text-to-SQL by frameworks like DINSQL and CHASE-SQL but not previously applied to Cypher generation.
+
+\textbf{Literal Value Resolution:} Our Matcher Agent addresses the critical challenge of mapping natural language entity references to exact database values, a problem that becomes particularly acute in production databases where user queries reference specific names, identifiers, or categorizations. CypherBench's template-based approach circumvents this by design, while production systems must resolve values dynamically against live databases.
+
+\textbf{Execution-Based Validation:} Our Validation Agent employs actual query execution against a Neo4j database with iterative refinement, moving beyond the static syntactic validation used in earlier work. This approach mirrors successful Text-to-SQL frameworks like ReFoRCE \cite{sun2025reforce} and Arctic-Text2SQL-R1 \cite{yao2025arctic}, which demonstrated that execution feedback is essential for achieving high accuracy on complex, real-world schemas.
+
+\textbf{Bias-Free Explanation:} Our Explanation Node introduces a novel transparency mechanism by generating query interpretations based solely on the final Cypher query and schema, deliberately excluding the original user request from context. This design prevents post-hoc rationalization and ensures that users receive objective descriptions of what the query actually does, enabling them to detect misalignments between their intent and the generated query—a feature absent from prior Text-to-Cypher systems.
+
+\textbf{Visual Syntax Handling:} Our architecture explicitly addresses Cypher's unique ASCII-art-inspired pattern matching syntax (e.g., {\tt (:Person)-->(:Person)}), which presents distinct tokenization and structural generation challenges compared to the linear syntax of SQL or the triple-based patterns of SPARQL. Rather than treating Cypher as a variant of SQL, our Generation Agent applies graph-specific construction rules optimized for the visual and relational nature of Cypher.
+
+
+\section{System Architecture}
+
+\subsection{Agent Architecture}
+
+Our system employs a multi-agent architecture orchestrated through LangGraph, implementing a sophisticated pipeline for natural language to Cypher translation. The architecture consists of six specialized agents, each responsible for a distinct stage of the query generation process. Figure~\ref{fig:architecture} illustrates the complete system architecture and agent interactions.
+
+\subsubsection{Expansion Agent}
+
+The Expansion Agent serves as the initial point of contact for user queries, functioning as a data analysis expert that clarifies and enriches user requests. Given a natural language question and the database schema, this agent performs three critical tasks: (1) expanding the user's request with contextual details and domain expertise, (2) determining whether the query requires decomposition into multiple subproblems due to complexity or multiple objectives, and (3) identifying when clarification from the user is needed to resolve ambiguities. The agent outputs an expanded description of the task, a decomposition decision flag, and an optional clarification question when the user's intent cannot be confidently determined.
+
+\subsubsection{Decomposition Agent}
+
+For complex queries that address multiple distinct objectives, the Decomposition Agent breaks down the expanded request into independent subproblems that can be handled separately. This agent analyzes the expanded description alongside the database schema to identify logical boundaries within the query and produces a list of natural language subproblems, each representing a cohesive unit of work that can be translated into a separate Cypher query fragment. By identifying these boundaries early in the pipeline, the system enables parallel processing and reduces the complexity burden on subsequent agents.
+
+\subsubsection{Generation Agent}
+
+The Generation Agent is responsible for translating natural language subproblems into syntactically correct Cypher query fragments. Operating on each subproblem independently, this agent receives the subproblem description, database schema, and optionally a set of verified field values from the Matcher Agent. The agent applies specific rules for Cypher construction, ensuring proper syntax, appropriate use of pattern matching, and adherence to graph database best practices. The output is a validated Cypher fragment that addresses a specific aspect of the user's original query.
+
+\subsubsection{Matcher Agent}
+
+The Matcher Agent addresses the critical challenge of literal value resolution in Cypher queries. Many natural language queries reference specific entity names, identifiers, or other literal values that must match exactly what is stored in the database. This agent extracts label-property-value triples from generated Cypher fragments and resolves the literal values against actual database values. The agent operates specifically on equality comparisons within WHERE clauses, ensuring that references to entities such as protocol names, technologies, or organization identifiers are accurately mapped to their canonical forms in the database.
+
+\subsubsection{Validation Agent}
+
+The Validation Agent functions as the execution engine that tests generated Cypher fragments against the live Neo4j database. This agent receives one or more Cypher fragments and executes them to verify correctness and identify any syntax errors, type mismatches, or semantic issues. When multiple fragments are provided, the agent executes them concurrently to improve performance. The agent captures execution results and any error messages, providing essential feedback to the Generation Agent for iterative refinement. The system permits up to three validation attempts with error-based correction to ensure robustness.
+
+\subsubsection{Composition Agent}
+
+The Composition Agent serves as the final orchestrator that assembles validated Cypher fragments into a complete, executable query. When multiple fragments exist, this agent combines them using appropriate Cypher constructs—typically through UNION clauses or sequential execution patterns. For single-fragment scenarios, the agent optimizes by bypassing unnecessary composition steps. The agent also implements a refine mechanism that can correct queries based on validation errors, performing iterative repair when the initial composition fails.
+
+\subsubsection{Explanation Node}
+
+Following successful query composition and validation, the Explanation Node generates a human-readable interpretation of the final Cypher query. A key design principle of this component is its strict dependence on only the final Cypher query and the database schema, deliberately excluding any reference to the original user request or the agent processing history.
+
+This isolation serves multiple critical purposes. First, it eliminates potential bias in the explanation—rather than rationalizing or post-hoc justifying a potentially flawed query based on knowledge of what the user intended, the explanation must faithfully describe exactly what the query does. If the generated Cypher does not align with the user's original intent, this disconnect becomes immediately apparent in the explanation, providing users with an opportunity to detect and correct errors. Second, this approach ensures full transparency in the query generation process; users receive an objective characterization of the database operation being performed, untainted by confirmation bias from the system's internal reasoning trace. Third, it enables the explanation to serve as an independent validation mechanism—if the explanation describes a query that would not answer the user's question, this signals a failure in the preceding pipeline that would otherwise remain masked by an explanation crafted to align with the original request.
+
+The explanation operates as a pure function of the final query text and schema structure, treating the Cypher as opaque code that must be interpreted on its own merits. This design choice prioritizes correctness and user empowerment over convenience, as users receive truthful information about what query will execute rather than a potentially misleading narrative linking the query back to their initial question.
+
+\subsubsection{Workflow Orchestration}
+
+The multi-agent workflow is orchestrated through a LangGraph StateGraph, which manages agent interactions and determines the execution path based on intermediate results. The workflow begins with the Expansion Agent, which routes to either the user clarification path, the Decomposition Agent for complex queries, or directly to the Generation Agent for straightforward requests. Following decomposition, the system proceeds to parallel fragment generation, after which validated fragments are composed and subjected to final validation. The workflow concludes with the Explanation Node, which generates a natural language interpretation before delivering results to the user. This conditional routing approach ensures that the system adapts to the complexity and characteristics of each specific query, avoiding unnecessary processing steps when possible while maintaining comprehensive handling of complex scenarios.
+
+\subsection{Graph Database Description}
+
+\section{Experiment Design}
+
+\section{Results}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

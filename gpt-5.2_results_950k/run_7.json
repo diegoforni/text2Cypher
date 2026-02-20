@@ -1,0 +1,2791 @@
+{
+  "summary": {
+    "total_queries": 15,
+    "run_duration_seconds": 2751.029707,
+    "model": "gpt-5.2",
+    "provider": "openai",
+    "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+    "started_at": "2026-02-20T07:44:59.083054+00:00",
+    "ended_at": "2026-02-20T08:30:50.112761+00:00",
+    "status_breakdown": {
+      "SUCCESS": 2,
+      "ERROR": 13
+    },
+    "error_types": {
+      "OTHER": 10,
+      "EMPTY_QUERY": 3
+    },
+    "total_tokens": 49218,
+    "total_duration_seconds": 2751.016,
+    "success_rate": 13.33
+  },
+  "results": [
+    {
+      "index": 1,
+      "category": "simple",
+      "prompt": "What is the attack technique most used overall?",
+      "expected_cypher": "MATCH (:IP)-[a:ATTACKS]->(:Country)\nWITH a.technique AS technique, count(*) AS attacks\nORDER BY attacks DESC\nLIMIT 1\nRETURN technique, attacks",
+      "agent_cypher": "MATCH (ip:IP)-[r:ATTACKS]->(c:Country)\nWHERE r.technique IS NOT NULL AND trim(r.technique) <> ''\nWITH r.technique AS technique, count(*) AS attack_count\nORDER BY attack_count DESC, technique ASC\nLIMIT 1\nRETURN technique, attack_count, 1 AS rank",
+      "response": [
+        {
+          "technique": "T1566 Phishing",
+          "attack_count": 2863569,
+          "rank": 1
+        }
+      ],
+      "error": null,
+      "analysis": {
+        "has_query": true,
+        "query_length": 244,
+        "has_error": false,
+        "error_type": "NONE",
+        "has_results": true,
+        "result_type": "list",
+        "result_count": 1,
+        "status": "SUCCESS",
+        "status_detail": "Query executed successfully and returned 1 rows"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify which attack technique is observed most frequently across all recorded attack events in the dataset, regardless of source IP, destination/attacked country, ASN, or time period.\",\n  \"KEY_ENTITIES\": \"Primary: (:IP)-[:ATTACKS]->(:Country) relationships, using the relationship property 'technique' as the technique label and counting each ATTACKS relationship instance as one usage/occurrence. Secondary (contextual only, not required for aggregation): :IP nodes (as the attacker/source entity) and :Country nodes (as the attacked/target entity).\",\n  \"FILTERS\": \"No explicit filters are provided; compute overall across all ATTACKS relationships. Implicit data-quality filters to consider: exclude ATTACKS relationships where 'technique' is null/blank/unknown (if such values exist) so the 'most used' result reflects a meaningful technique category.\",\n  \"OUTPUT_FORMAT\": \"Return the top technique with its total occurrence count. Optionally include a ranked list (e.g., top 5/10) for context, but the minimum required output is the single most-used technique and its count.\",\n  \"SUGGESTED_APPROACH\": \"Scan all ATTACKS relationships, extract the 'technique' property, normalize/clean empty or null values if needed, aggregate by technique to compute total counts, then sort counts descending and select the highest-count technique (optionally return ties if multiple techniques share the top count).\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Across all IP-to-Country ATTACKS relationships, count occurrences by the relationship property 'technique' (excluding null/blank if applicable) and return the technique with the highest total count (optionally with its count and rank).\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Across all IP-to-Country ATTACKS relationships, count occurrences by the relationship property 'technique' (excluding null/blank if applicable) and return the technique with the highest total count (optionally with its count and rank)."
+          ]
+        },
+        "generation": {
+          "fragments": [
+            "MATCH (ip:IP)-[r:ATTACKS]->(c:Country)\nWHERE r.technique IS NOT NULL AND trim(r.technique) <> ''\nWITH r.technique AS technique, count(*) AS attack_count\nORDER BY attack_count DESC, technique ASC\nLIMIT 1\nRETURN technique, attack_count, 1 AS rank"
+          ],
+          "trace": [
+            {
+              "subproblem": "Across all IP-to-Country ATTACKS relationships, count occurrences by the relationship property 'technique' (excluding null/blank if applicable) and return the technique with the highest total count (optionally with its count and rank).",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(c:Country)\nWHERE r.technique IS NOT NULL AND trim(r.technique) <> ''\nWITH r.technique AS technique, count(*) AS attack_count\nORDER BY attack_count DESC, technique ASC\nLIMIT 1\nRETURN technique, attack_count, 1 AS rank",
+                  "matched_pairs": [],
+                  "ok": true,
+                  "error": null,
+                  "rows_preview": [
+                    {
+                      "technique": "T1566 Phishing",
+                      "attack_count": 2863569,
+                      "rank": 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": "MATCH (ip:IP)-[r:ATTACKS]->(c:Country)\nWHERE r.technique IS NOT NULL AND trim(r.technique) <> ''\nWITH r.technique AS technique, count(*) AS attack_count\nORDER BY attack_count DESC, technique ASC\nLIMIT 1\nRETURN technique, attack_count, 1 AS rank"
+        },
+        "final_validation": {
+          "trace": null,
+          "error": null,
+          "results_preview": [
+            {
+              "technique": "T1566 Phishing",
+              "attack_count": 2863569,
+              "rank": 1
+            }
+          ]
+        },
+        "explanation": {
+          "text": "This query finds the most frequently recorded non-empty `ATTACKS.technique` value across all IP\u2192Country attack relationships, returning that technique, its total count, and a rank of 1."
+        }
+      },
+      "token_usage": {
+        "input": 1454,
+        "output": 683,
+        "total": 2137
+      },
+      "duration_seconds": 367.723,
+      "started_at": "2026-02-20T07:44:59.084814+00:00",
+      "ended_at": "2026-02-20T07:51:06.807595+00:00",
+      "metadata": {
+        "time": "2026-02-20T07:51:06.794036+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 2,
+      "category": "matcher-needed",
+      "prompt": "From all the IPs that have attacked using phishing, which other techniques do they use for other attacks and how often (in percentage)?",
+      "expected_cypher": "MATCH (ip:IP)-[a:ATTACKS]->(:Country)\nWITH ip, collect(toLower(a.technique)) AS allTechs\nWHERE any(t IN allTechs WHERE t CONTAINS 'phishing')\nMATCH (ip)-[a2:ATTACKS]->(:Country)\nWHERE NOT toLower(a2.technique) CONTAINS 'phishing'\nWITH a2.technique AS technique, count(*) AS cnt\nWITH collect({technique: technique, cnt: cnt}) AS rows, sum(cnt) AS total\nUNWIND rows AS r\nRETURN r.technique AS technique, r.cnt AS attacks, toFloat(r.cnt) / total * 100.0 AS percentage\nORDER BY percentage DESC",
+      "agent_cypher": "MATCH (ip:IP)-[p:ATTACKS]->(:Country)\nWHERE p.technique = 'T1566 Phishing'\nWITH DISTINCT ip\nMATCH (ip)-[a:ATTACKS]->(:Country)\nWHERE a.technique <> 'phishing'\nWITH a.technique AS technique, count(*) AS cnt\nWITH collect({technique: technique, cnt: cnt}) AS rows, sum(cnt) AS total\nUNWIND rows AS row\nRETURN row.technique AS technique,\n       row.cnt AS count,\n       (toFloat(row.cnt) * 100.0) / total AS percentage_share\nORDER BY count DESC, technique",
+      "response": [
+        {
+          "technique": "T1566 Phishing",
+          "count": 2863569,
+          "percentage_share": 93.73295638110146
+        },
+        {
+          "technique": "T1595 Active Scanning",
+          "count": 19712,
+          "percentage_share": 0.6452311909314118
+        },
+        {
+          "technique": "unknown",
+          "count": 18852,
+          "percentage_share": 0.6170808853205649
+        },
+        {
+          "technique": "T1110 Brute Force",
+          "count": 13452,
+          "percentage_share": 0.4403231524152471
+        },
+        {
+          "technique": "T1204 User Execution",
+          "count": 6119,
+          "percentage_share": 0.2002926977125258
+        },
+        {
+          "technique": "T1071 Application Layer Protocol",
+          "count": 4126,
+          "percentage_share": 0.13505600110506316
+        },
+        {
+          "technique": "T1129 Shared Modules",
+          "count": 3928,
+          "percentage_share": 0.12857488423186816
+        },
+        {
+          "technique": "T1060 Registry Run Keys / Startup Folder",
+          "count": 3717,
+          "percentage_share": 0.12166823948316038
+        },
+        {
+          "technique": "T1027 Obfuscated Files or Information",
+          "count": 3707,
+          "percentage_share": 0.12134091034815055
+        },
+        {
+          "technique": "T1055 Process Injection",
+          "count": 3664,
+          "percentage_share": 0.1199333950676082
+        },
+        {
+          "technique": "T1045 Software Packing",
+          "count": 3275,
+          "percentage_share": 0.10720029171572512
+        },
+        {
+          "technique": "T1057 Process Discovery",
+          "count": 3100,
+          "percentage_share": 0.10147203185305279
+        },
+        {
+          "technique": "T1040 Network Sniffing",
+          "count": 3026,
+          "percentage_share": 0.09904979625397992
+        },
+        {
+          "technique": "T1140 Deobfuscate/Decode Files or Information",
+          "count": 2920,
+          "percentage_share": 0.09558010742287552
+        },
+        {
+          "technique": "T1112 Modify Registry",
+          "count": 2850,
+          "percentage_share": 0.09328880347780659
+        },
+        {
+          "technique": "T1119 Automated Collection",
+          "count": 2809,
+          "percentage_share": 0.09194675402426622
+        },
+        {
+          "technique": "T1082 System Information Discovery",
+          "count": 2740,
+          "percentage_share": 0.08968818299269826
+        },
+        {
+          "technique": "T1210 Exploitation of Remote Services",
+          "count": 2501,
+          "percentage_share": 0.08186501666596291
+        },
+        {
+          "technique": "T1106 Native API",
+          "count": 2358,
+          "percentage_share": 0.07718421003532208
+        },
+        {
+          "technique": "T1036 Masquerading",
+          "count": 2316,
+          "percentage_share": 0.07580942766828072
+        },
+        {
+          "technique": "T1105 Ingress Tool Transfer",
+          "count": 2245,
+          "percentage_share": 0.07348539080971081
+        },
+        {
+          "technique": "T1143 Hidden Window",
+          "count": 2167,
+          "percentage_share": 0.07093222355663399
+        },
+        {
+          "technique": "T1047 Windows Management Instrumentation",
+          "count": 2095,
+          "percentage_share": 0.06857545378456309
+        },
+        {
+          "technique": "T1003 OS Credential Dumping",
+          "count": 2056,
+          "percentage_share": 0.06729887015802469
+        },
+        {
+          "technique": "T1023 Shortcut Modification",
+          "count": 2022,
+          "percentage_share": 0.06618595109899121
+        },
+        {
+          "technique": "T1012 Query Registry",
+          "count": 1895,
+          "percentage_share": 0.06202887108436614
+        },
+        {
+          "technique": "T1428 Unknown Technique",
+          "count": 1895,
+          "percentage_share": 0.06202887108436614
+        },
+        {
+          "technique": "T1089 Disabling Security Tools",
+          "count": 1894,
+          "percentage_share": 0.061996138170865155
+        },
+        {
+          "technique": "T1573 Encrypted Channel",
+          "count": 1785,
+          "percentage_share": 0.05842825059925781
+        },
+        {
+          "technique": "T1133 External Remote Services",
+          "count": 1774,
+          "percentage_share": 0.05806818855074698
+        },
+        {
+          "technique": "T1499 Endpoint Denial of Service",
+          "count": 1665,
+          "percentage_share": 0.05450030097913964
+        },
+        {
+          "technique": "T1071.004 DNS",
+          "count": 1646,
+          "percentage_share": 0.05387837562262093
+        },
+        {
+          "technique": "T1203 Exploitation for Client Execution",
+          "count": 1546,
+          "percentage_share": 0.05060508427252245
+        },
+        {
+          "technique": "T1031 Modify Existing Service",
+          "count": 1535,
+          "percentage_share": 0.05024502222401162
+        },
+        {
+          "technique": "T1564 Hide Artifacts",
+          "count": 1529,
+          "percentage_share": 0.05004862474300571
+        },
+        {
+          "technique": "T1053 Scheduled Task/Job",
+          "count": 1480,
+          "percentage_share": 0.04844471198145746
+        },
+        {
+          "technique": "T1189 Drive-by Compromise",
+          "count": 1411,
+          "percentage_share": 0.04618614094988951
+        },
+        {
+          "technique": "T1485 Data Destruction",
+          "count": 1411,
+          "percentage_share": 0.04618614094988951
+        },
+        {
+          "technique": "T1068 Exploitation for Privilege Escalation",
+          "count": 1394,
+          "percentage_share": 0.04562968142037277
+        },
+        {
+          "technique": "T1059 Command and Scripting Interpreter",
+          "count": 1298,
+          "percentage_share": 0.04248732172427823
+        },
+        {
+          "technique": "T1449 Unknown Technique",
+          "count": 1195,
+          "percentage_share": 0.0391158316336768
+        },
+        {
+          "technique": "TA0011 Unknown Technique",
+          "count": 1013,
+          "percentage_share": 0.03315844137649757
+        },
+        {
+          "technique": "TA0003 Unknown Technique",
+          "count": 938,
+          "percentage_share": 0.030703472863923713
+        },
+        {
+          "technique": "TA0004 Unknown Technique",
+          "count": 930,
+          "percentage_share": 0.030441609555915836
+        },
+        {
+          "technique": "TA0005 Unknown Technique",
+          "count": 922,
+          "percentage_share": 0.03017974624790796
+        },
+        {
+          "technique": "T1056 Input Capture",
+          "count": 825,
+          "percentage_share": 0.027004653638312434
+        },
+        {
+          "technique": "T1071.001 Web Protocols",
+          "count": 825,
+          "percentage_share": 0.027004653638312434
+        },
+        {
+          "technique": "T1096 NTFS File Attributes",
+          "count": 820,
+          "percentage_share": 0.026840989070807512
+        },
+        {
+          "technique": "T1090 Proxy",
+          "count": 817,
+          "percentage_share": 0.026742790330304557
+        },
+        {
+          "technique": "T1114 Email Collection",
+          "count": 817,
+          "percentage_share": 0.026742790330304557
+        },
+        {
+          "technique": "T1018 Remote System Discovery",
+          "count": 785,
+          "percentage_share": 0.025695337098273045
+        },
+        {
+          "technique": "T1056.001 Keylogging",
+          "count": 754,
+          "percentage_share": 0.024680616779742516
+        },
+        {
+          "technique": "TA0007 Unknown Technique",
+          "count": 740,
+          "percentage_share": 0.02422235599072873
+        },
+        {
+          "technique": "T1497 Virtualization/Sandbox Evasion",
+          "count": 709,
+          "percentage_share": 0.0232076356721982
+        },
+        {
+          "technique": "T1083 File and Directory Discovery",
+          "count": 692,
+          "percentage_share": 0.02265117614268146
+        },
+        {
+          "technique": "TA0009 Unknown Technique",
+          "count": 658,
+          "percentage_share": 0.02153825708364798
+        },
+        {
+          "technique": "T1059.007 JavaScript",
+          "count": 654,
+          "percentage_share": 0.02140732542964404
+        },
+        {
+          "technique": "T1568 Dynamic Resolution",
+          "count": 625,
+          "percentage_share": 0.02045807093811548
+        },
+        {
+          "technique": "T1088 Bypass User Account Control",
+          "count": 612,
+          "percentage_share": 0.02003254306260268
+        },
+        {
+          "technique": "TA0002 Unknown Technique",
+          "count": 582,
+          "percentage_share": 0.019050555657573135
+        },
+        {
+          "technique": "TA0006 Unknown Technique",
+          "count": 570,
+          "percentage_share": 0.01865776069556132
+        },
+        {
+          "technique": "T1059.001 PowerShell",
+          "count": 568,
+          "percentage_share": 0.018592294868559348
+        },
+        {
+          "technique": "T1583.005 Botnet",
+          "count": 567,
+          "percentage_share": 0.018559561955058364
+        },
+        {
+          "technique": "T1033 System Owner/User Discovery",
+          "count": 563,
+          "percentage_share": 0.018428630301054426
+        },
+        {
+          "technique": "T1553 Subvert Trust Controls",
+          "count": 562,
+          "percentage_share": 0.018395897387553442
+        },
+        {
+          "technique": "T1583 Acquire Infrastructure",
+          "count": 554,
+          "percentage_share": 0.01813403407954556
+        },
+        {
+          "technique": "T1176 Browser Extensions",
+          "count": 549,
+          "percentage_share": 0.01797036951204064
+        },
+        {
+          "technique": "T1498 Network Denial of Service",
+          "count": 527,
+          "percentage_share": 0.017250245415018975
+        },
+        {
+          "technique": "T1125 Video Capture",
+          "count": 494,
+          "percentage_share": 0.016170059269486475
+        },
+        {
+          "technique": "T1547 Boot or Logon Autostart Execution",
+          "count": 491,
+          "percentage_share": 0.01607186052898352
+        },
+        {
+          "technique": "T1110.002 Password Cracking",
+          "count": 490,
+          "percentage_share": 0.016039127615482537
+        },
+        {
+          "technique": "T1132 Data Encoding",
+          "count": 476,
+          "percentage_share": 0.01558086682646875
+        },
+        {
+          "technique": "T1155 AppleScript",
+          "count": 452,
+          "percentage_share": 0.014795276902445116
+        },
+        {
+          "technique": "T1543 Create or Modify System Process",
+          "count": 438,
+          "percentage_share": 0.01433701611343133
+        },
+        {
+          "technique": "T1094 Custom Command and Control Protocol",
+          "count": 432,
+          "percentage_share": 0.01414061863242542
+        },
+        {
+          "technique": "T1064 Scripting",
+          "count": 426,
+          "percentage_share": 0.013944221151419512
+        },
+        {
+          "technique": "T1070 Indicator Removal",
+          "count": 426,
+          "percentage_share": 0.013944221151419512
+        },
+        {
+          "technique": "T1202 Indirect Command Execution",
+          "count": 408,
+          "percentage_share": 0.013355028708401787
+        },
+        {
+          "technique": "T1003.008 /etc/passwd and /etc/shadow",
+          "count": 392,
+          "percentage_share": 0.01283130209238603
+        },
+        {
+          "technique": "T1095 Non-Application Layer Protocol",
+          "count": 380,
+          "percentage_share": 0.012438507130374213
+        },
+        {
+          "technique": "T1598 Phishing for Information",
+          "count": 371,
+          "percentage_share": 0.01214391090886535
+        },
+        {
+          "technique": "T1445 Unknown Technique",
+          "count": 360,
+          "percentage_share": 0.011783848860354516
+        },
+        {
+          "technique": "T1114.002 Remote Email Collection",
+          "count": 332,
+          "percentage_share": 0.010867327282326944
+        },
+        {
+          "technique": "T1531 Account Access Removal",
+          "count": 330,
+          "percentage_share": 0.010801861455324973
+        },
+        {
+          "technique": "T1566.001 Spearphishing Attachment",
+          "count": 322,
+          "percentage_share": 0.010539998147317096
+        },
+        {
+          "technique": "T1001 Data Obfuscation",
+          "count": 318,
+          "percentage_share": 0.010409066493313157
+        },
+        {
+          "technique": "T1021.001 Remote Desktop Protocol",
+          "count": 318,
+          "percentage_share": 0.010409066493313157
+        },
+        {
+          "technique": "T1021.006 Windows Remote Management",
+          "count": 318,
+          "percentage_share": 0.010409066493313157
+        },
+        {
+          "technique": "T1454 Unknown Technique",
+          "count": 318,
+          "percentage_share": 0.010409066493313157
+        },
+        {
+          "technique": "T1596.001 DNS/Passive DNS",
+          "count": 318,
+          "percentage_share": 0.010409066493313157
+        },
+        {
+          "technique": "T1596.004 CDNs",
+          "count": 318,
+          "percentage_share": 0.010409066493313157
+        },
+        {
+          "technique": "T1192 Spearphishing Link",
+          "count": 316,
+          "percentage_share": 0.010343600666311186
+        },
+        {
+          "technique": "T1553.004 Install Root Certificate",
+          "count": 310,
+          "percentage_share": 0.010147203185305279
+        },
+        {
+          "technique": "T1562 Impair Defenses",
+          "count": 309,
+          "percentage_share": 0.010114470271804293
+        },
+        {
+          "technique": "T1563.002 RDP Hijacking",
+          "count": 307,
+          "percentage_share": 0.010049004444802324
+        },
+        {
+          "technique": "T1011 Exfiltration Over Other Network Medium",
+          "count": 306,
+          "percentage_share": 0.01001627153130134
+        },
+        {
+          "technique": "T1019 System Firmware",
+          "count": 306,
+          "percentage_share": 0.01001627153130134
+        },
+        {
+          "technique": "T1055.001 Dynamic-link Library Injection",
+          "count": 306,
+          "percentage_share": 0.01001627153130134
+        },
+        {
+          "technique": "T1059.004 Unix Shell",
+          "count": 306,
+          "percentage_share": 0.01001627153130134
+        },
+        {
+          "technique": "T1071.002 File Transfer Protocols",
+          "count": 306,
+          "percentage_share": 0.01001627153130134
+        },
+        {
+          "technique": "T1078.004 Cloud Accounts",
+          "count": 306,
+          "percentage_share": 0.01001627153130134
+        },
+        {
+          "technique": "T1204.001 Malicious Link",
+          "count": 306,
+          "percentage_share": 0.01001627153130134
+        },
+        {
+          "technique": "T1218.001 Compiled HTML File",
+          "count": 306,
+          "percentage_share": 0.01001627153130134
+        },
+        {
+          "technique": "T1476 Unknown Technique",
+          "count": 306,
+          "percentage_share": 0.01001627153130134
+        },
+        {
+          "technique": "T1059.002 AppleScript",
+          "count": 295,
+          "percentage_share": 0.009656209482790508
+        },
+        {
+          "technique": "T1029 Scheduled Transfer",
+          "count": 288,
+          "percentage_share": 0.009427079088283614
+        },
+        {
+          "technique": "T1183 Image File Execution Options Injection",
+          "count": 288,
+          "percentage_share": 0.009427079088283614
+        },
+        {
+          "technique": "T1043 Commonly Used Port",
+          "count": 285,
+          "percentage_share": 0.00932888034778066
+        },
+        {
+          "technique": "T1563 Remote Service Session Hijacking",
+          "count": 284,
+          "percentage_share": 0.009296147434279674
+        },
+        {
+          "technique": "T1415 Unknown Technique",
+          "count": 282,
+          "percentage_share": 0.009230681607277705
+        },
+        {
+          "technique": "T1410 Unknown Technique",
+          "count": 265,
+          "percentage_share": 0.008674222077760963
+        },
+        {
+          "technique": "T1416 Unknown Technique",
+          "count": 264,
+          "percentage_share": 0.00864148916425998
+        },
+        {
+          "technique": "T1046 Network Service Discovery",
+          "count": 254,
+          "percentage_share": 0.008314160029250131
+        },
+        {
+          "technique": "T1212 Exploitation for Credential Access",
+          "count": 254,
+          "percentage_share": 0.008314160029250131
+        },
+        {
+          "technique": "T1459 Unknown Technique",
+          "count": 254,
+          "percentage_share": 0.008314160029250131
+        },
+        {
+          "technique": "T1041 Exfiltration Over C2 Channel",
+          "count": 249,
+          "percentage_share": 0.008150495461745207
+        },
+        {
+          "technique": "T1016.001 Internet Connection Discovery",
+          "count": 246,
+          "percentage_share": 0.008052296721242254
+        },
+        {
+          "technique": "T1123 Audio Capture",
+          "count": 243,
+          "percentage_share": 0.007954097980739299
+        },
+        {
+          "technique": "T1001.003 Protocol or Service Impersonation",
+          "count": 240,
+          "percentage_share": 0.007855899240236344
+        },
+        {
+          "technique": "T1017 Application Deployment Software",
+          "count": 240,
+          "percentage_share": 0.007855899240236344
+        },
+        {
+          "technique": "T1138 Application Shimming",
+          "count": 240,
+          "percentage_share": 0.007855899240236344
+        },
+        {
+          "technique": "T1457 Unknown Technique",
+          "count": 233,
+          "percentage_share": 0.007626768845729452
+        },
+        {
+          "technique": "T1158 Hidden Files and Directories",
+          "count": 228,
+          "percentage_share": 0.0074631042782245275
+        },
+        {
+          "technique": "T1063 Security Software Discovery",
+          "count": 227,
+          "percentage_share": 0.007430371364723543
+        },
+        {
+          "technique": "TA0034 Unknown Technique",
+          "count": 226,
+          "percentage_share": 0.007397638451222558
+        },
+        {
+          "technique": "TA0040 Unknown Technique",
+          "count": 226,
+          "percentage_share": 0.007397638451222558
+        },
+        {
+          "technique": "T1568.002 Domain Generation Algorithms",
+          "count": 224,
+          "percentage_share": 0.007332172624220588
+        },
+        {
+          "technique": "T1472 Unknown Technique",
+          "count": 216,
+          "percentage_share": 0.00707030931621271
+        },
+        {
+          "technique": "T1491 Defacement",
+          "count": 216,
+          "percentage_share": 0.00707030931621271
+        },
+        {
+          "technique": "T1134 Access Token Manipulation",
+          "count": 213,
+          "percentage_share": 0.006972110575709756
+        },
+        {
+          "technique": "TA0010 Unknown Technique",
+          "count": 210,
+          "percentage_share": 0.006873911835206802
+        },
+        {
+          "technique": "T1199 Trusted Relationship",
+          "count": 209,
+          "percentage_share": 0.0068411789217058165
+        },
+        {
+          "technique": "T1512 Unknown Technique",
+          "count": 208,
+          "percentage_share": 0.006808446008204832
+        },
+        {
+          "technique": "TA0008 Unknown Technique",
+          "count": 208,
+          "percentage_share": 0.006808446008204832
+        },
+        {
+          "technique": "T1518 Software Discovery",
+          "count": 205,
+          "percentage_share": 0.006710247267701878
+        },
+        {
+          "technique": "T1102 Web Service",
+          "count": 196,
+          "percentage_share": 0.006415651046193015
+        },
+        {
+          "technique": "T1480 Execution Guardrails",
+          "count": 193,
+          "percentage_share": 0.00631745230569006
+        },
+        {
+          "technique": "T1003.005 Cached Domain Credentials",
+          "count": 180,
+          "percentage_share": 0.005891924430177258
+        },
+        {
+          "technique": "TA0001 Unknown Technique",
+          "count": 174,
+          "percentage_share": 0.00569552694917135
+        },
+        {
+          "technique": "T1505 Server Software Component",
+          "count": 173,
+          "percentage_share": 0.005662794035670365
+        },
+        {
+          "technique": "T1107 File Deletion",
+          "count": 172,
+          "percentage_share": 0.00563006112216938
+        },
+        {
+          "technique": "T1005 Data from Local System",
+          "count": 171,
+          "percentage_share": 0.0055973282086683954
+        },
+        {
+          "technique": "T1051 Shared Webroot",
+          "count": 168,
+          "percentage_share": 0.0054991294681654415
+        },
+        {
+          "technique": "T1423 Unknown Technique",
+          "count": 168,
+          "percentage_share": 0.0054991294681654415
+        },
+        {
+          "technique": "T1506 Web Session Cookie",
+          "count": 168,
+          "percentage_share": 0.0054991294681654415
+        },
+        {
+          "technique": "T1122 Component Object Model Hijacking",
+          "count": 162,
+          "percentage_share": 0.005302731987159533
+        },
+        {
+          "technique": "T1179 Hooking",
+          "count": 161,
+          "percentage_share": 0.005269999073658548
+        },
+        {
+          "technique": "T1443 Unknown Technique",
+          "count": 160,
+          "percentage_share": 0.005237266160157563
+        },
+        {
+          "technique": "T1478 Unknown Technique",
+          "count": 160,
+          "percentage_share": 0.005237266160157563
+        },
+        {
+          "technique": "T1081 Credentials in Files",
+          "count": 158,
+          "percentage_share": 0.005171800333155593
+        },
+        {
+          "technique": "T1007 System Service Discovery",
+          "count": 156,
+          "percentage_share": 0.005106334506153624
+        },
+        {
+          "technique": "T1553.002 Code Signing",
+          "count": 156,
+          "percentage_share": 0.005106334506153624
+        },
+        {
+          "technique": "T1036.004 Masquerade Task or Service",
+          "count": 146,
+          "percentage_share": 0.0047790053711437765
+        },
+        {
+          "technique": "T1021 Remote Services",
+          "count": 135,
+          "percentage_share": 0.004418943322632944
+        },
+        {
+          "technique": "T1560 Archive Collected Data",
+          "count": 130,
+          "percentage_share": 0.00425527875512802
+        },
+        {
+          "technique": "T1087 Account Discovery",
+          "count": 129,
+          "percentage_share": 0.004222545841627036
+        },
+        {
+          "technique": "T1550 Use Alternate Authentication Material",
+          "count": 129,
+          "percentage_share": 0.004222545841627036
+        },
+        {
+          "technique": "T1215 Kernel Modules and Extensions",
+          "count": 128,
+          "percentage_share": 0.00418981292812605
+        },
+        {
+          "technique": "T1489 Service Stop",
+          "count": 126,
+          "percentage_share": 0.004124347101124081
+        },
+        {
+          "technique": "TA0037 Unknown Technique",
+          "count": 126,
+          "percentage_share": 0.004124347101124081
+        },
+        {
+          "technique": "T1583.001 Domains",
+          "count": 124,
+          "percentage_share": 0.004058881274122112
+        },
+        {
+          "technique": "T1558 Steal or Forge Kerberos Tickets",
+          "count": 121,
+          "percentage_share": 0.003960682533619157
+        },
+        {
+          "technique": "T1450 Unknown Technique",
+          "count": 120,
+          "percentage_share": 0.003927949620118172
+        },
+        {
+          "technique": "T1530 Data from Cloud Storage",
+          "count": 120,
+          "percentage_share": 0.003927949620118172
+        },
+        {
+          "technique": "T1552 Unsecured Credentials",
+          "count": 120,
+          "percentage_share": 0.003927949620118172
+        },
+        {
+          "technique": "T1548 Abuse Elevation Control Mechanism",
+          "count": 119,
+          "percentage_share": 0.0038952167066171875
+        },
+        {
+          "technique": "T1569 System Services",
+          "count": 117,
+          "percentage_share": 0.003829750879615218
+        },
+        {
+          "technique": "T1049 System Network Connections Discovery",
+          "count": 116,
+          "percentage_share": 0.003797017966114233
+        },
+        {
+          "technique": "T1218 System Binary Proxy Execution",
+          "count": 115,
+          "percentage_share": 0.0037642850526132484
+        },
+        {
+          "technique": "T1571 Non-Standard Port",
+          "count": 114,
+          "percentage_share": 0.0037315521391122638
+        },
+        {
+          "technique": "T1027.002 Software Packing",
+          "count": 112,
+          "percentage_share": 0.003666086312110294
+        },
+        {
+          "technique": "T1016 System Network Configuration Discovery",
+          "count": 111,
+          "percentage_share": 0.0036333533986093094
+        },
+        {
+          "technique": "T1110.003 Password Spraying",
+          "count": 111,
+          "percentage_share": 0.0036333533986093094
+        },
+        {
+          "technique": "T1035 Service Execution",
+          "count": 110,
+          "percentage_share": 0.0036006204851083247
+        },
+        {
+          "technique": "T1190 Exploit Public-Facing Application",
+          "count": 110,
+          "percentage_share": 0.0036006204851083247
+        },
+        {
+          "technique": "T1427 Unknown Technique",
+          "count": 110,
+          "percentage_share": 0.0036006204851083247
+        },
+        {
+          "technique": "T1059.006 Python",
+          "count": 108,
+          "percentage_share": 0.003535154658106355
+        },
+        {
+          "technique": "T1173 Dynamic Data Exchange",
+          "count": 108,
+          "percentage_share": 0.003535154658106355
+        },
+        {
+          "technique": "T1453 Unknown Technique",
+          "count": 108,
+          "percentage_share": 0.003535154658106355
+        },
+        {
+          "technique": "T1572 Protocol Tunneling",
+          "count": 105,
+          "percentage_share": 0.003436955917603401
+        },
+        {
+          "technique": "T1205.001 Port Knocking",
+          "count": 104,
+          "percentage_share": 0.003404223004102416
+        },
+        {
+          "technique": "T1460 Unknown Technique",
+          "count": 104,
+          "percentage_share": 0.003404223004102416
+        },
+        {
+          "technique": "T1080 Taint Shared Content",
+          "count": 96,
+          "percentage_share": 0.003142359696094538
+        },
+        {
+          "technique": "T1198 SIP and Trust Provider Hijacking",
+          "count": 96,
+          "percentage_share": 0.003142359696094538
+        },
+        {
+          "technique": "T1010 Application Window Discovery",
+          "count": 90,
+          "percentage_share": 0.002945962215088629
+        },
+        {
+          "technique": "T1584 Compromise Infrastructure",
+          "count": 88,
+          "percentage_share": 0.0028804963880866598
+        },
+        {
+          "technique": "T1110.001 Password Guessing",
+          "count": 87,
+          "percentage_share": 0.002847763474585675
+        },
+        {
+          "technique": "T1008 Fallback Channels",
+          "count": 84,
+          "percentage_share": 0.0027495647340827207
+        },
+        {
+          "technique": "T1020 Automated Exfiltration",
+          "count": 84,
+          "percentage_share": 0.0027495647340827207
+        },
+        {
+          "technique": "T1055.003 Thread Execution Hijacking",
+          "count": 84,
+          "percentage_share": 0.0027495647340827207
+        },
+        {
+          "technique": "T1074 Data Staged",
+          "count": 84,
+          "percentage_share": 0.0027495647340827207
+        },
+        {
+          "technique": "T1567 Exfiltration Over Web Service",
+          "count": 84,
+          "percentage_share": 0.0027495647340827207
+        },
+        {
+          "technique": "T1585 Establish Accounts",
+          "count": 84,
+          "percentage_share": 0.0027495647340827207
+        },
+        {
+          "technique": "T1587 Develop Capabilities",
+          "count": 84,
+          "percentage_share": 0.0027495647340827207
+        },
+        {
+          "technique": "T1608 Stage Capabilities",
+          "count": 84,
+          "percentage_share": 0.0027495647340827207
+        },
+        {
+          "technique": "T1444 Unknown Technique",
+          "count": 80,
+          "percentage_share": 0.0026186330800787817
+        },
+        {
+          "technique": "T1486 Data Encrypted for Impact",
+          "count": 78,
+          "percentage_share": 0.002553167253076812
+        },
+        {
+          "technique": "T1496 Resource Hijacking",
+          "count": 75,
+          "percentage_share": 0.0024549685125738576
+        },
+        {
+          "technique": "T1502 Parent PID Spoofing",
+          "count": 72,
+          "percentage_share": 0.0023567697720709036
+        },
+        {
+          "technique": "TA0029 Unknown Technique",
+          "count": 72,
+          "percentage_share": 0.0023567697720709036
+        },
+        {
+          "technique": "T1595.001 Scanning IP Blocks",
+          "count": 71,
+          "percentage_share": 0.0023240368585699185
+        },
+        {
+          "technique": "T1595.002 Vulnerability Scanning",
+          "count": 71,
+          "percentage_share": 0.0023240368585699185
+        },
+        {
+          "technique": "T1055.013 Process Doppelg\u00e4nging",
+          "count": 68,
+          "percentage_share": 0.002225838118066964
+        },
+        {
+          "technique": "T1574 Hijack Execution Flow",
+          "count": 67,
+          "percentage_share": 0.0021931052045659795
+        },
+        {
+          "technique": "T1156 Malicious Shell Modification",
+          "count": 66,
+          "percentage_share": 0.002160372291064995
+        },
+        {
+          "technique": "T1614 System Location Discovery",
+          "count": 64,
+          "percentage_share": 0.002094906464063025
+        },
+        {
+          "technique": "TA0030 Unknown Technique",
+          "count": 62,
+          "percentage_share": 0.002029440637061056
+        },
+        {
+          "technique": "TA0043 Unknown Technique",
+          "count": 62,
+          "percentage_share": 0.002029440637061056
+        },
+        {
+          "technique": "T1185 Browser Session Hijacking",
+          "count": 60,
+          "percentage_share": 0.001963974810059086
+        },
+        {
+          "technique": "T1586.001 Social Media Accounts",
+          "count": 60,
+          "percentage_share": 0.001963974810059086
+        },
+        {
+          "technique": "T1596.005 Scan Databases",
+          "count": 60,
+          "percentage_share": 0.001963974810059086
+        },
+        {
+          "technique": "T1102.002 Bidirectional Communication",
+          "count": 56,
+          "percentage_share": 0.001833043156055147
+        },
+        {
+          "technique": "T1091 Replication Through Removable Media",
+          "count": 54,
+          "percentage_share": 0.0017675773290531775
+        },
+        {
+          "technique": "T1110.004 Credential Stuffing",
+          "count": 54,
+          "percentage_share": 0.0017675773290531775
+        },
+        {
+          "technique": "T1098 Account Manipulation",
+          "count": 52,
+          "percentage_share": 0.001702111502051208
+        },
+        {
+          "technique": "T1546 Event Triggered Execution",
+          "count": 48,
+          "percentage_share": 0.001571179848047269
+        },
+        {
+          "technique": "T1583.004 Server",
+          "count": 48,
+          "percentage_share": 0.001571179848047269
+        },
+        {
+          "technique": "T1605 Unknown Technique",
+          "count": 48,
+          "percentage_share": 0.001571179848047269
+        },
+        {
+          "technique": "T1055.012 Process Hollowing",
+          "count": 44,
+          "percentage_share": 0.0014402481940433299
+        },
+        {
+          "technique": "T1147 Hidden Users",
+          "count": 41,
+          "percentage_share": 0.0013420494535403755
+        },
+        {
+          "technique": "T1414 Unknown Technique",
+          "count": 40,
+          "percentage_share": 0.0013093165400393908
+        },
+        {
+          "technique": "T1490 Inhibit System Recovery",
+          "count": 40,
+          "percentage_share": 0.0013093165400393908
+        },
+        {
+          "technique": "T1510 Unknown Technique",
+          "count": 40,
+          "percentage_share": 0.0013093165400393908
+        },
+        {
+          "technique": "T1529 System Shutdown/Reboot",
+          "count": 40,
+          "percentage_share": 0.0013093165400393908
+        },
+        {
+          "technique": "T1100 Web Shell",
+          "count": 37,
+          "percentage_share": 0.0012111177995364365
+        },
+        {
+          "technique": "T1059.005 Visual Basic",
+          "count": 36,
+          "percentage_share": 0.0011783848860354518
+        },
+        {
+          "technique": "T1071.003 Mail Protocols",
+          "count": 36,
+          "percentage_share": 0.0011783848860354518
+        },
+        {
+          "technique": "T1078 Valid Accounts",
+          "count": 36,
+          "percentage_share": 0.0011783848860354518
+        },
+        {
+          "technique": "T1111 Multi-Factor Authentication Interception",
+          "count": 36,
+          "percentage_share": 0.0011783848860354518
+        },
+        {
+          "technique": "T1132.001 Standard Encoding",
+          "count": 36,
+          "percentage_share": 0.0011783848860354518
+        },
+        {
+          "technique": "T1184 SSH Hijacking",
+          "count": 36,
+          "percentage_share": 0.0011783848860354518
+        },
+        {
+          "technique": "T1497.001 System Checks",
+          "count": 36,
+          "percentage_share": 0.0011783848860354518
+        },
+        {
+          "technique": "T1547.001 Registry Run Keys / Startup Folder",
+          "count": 36,
+          "percentage_share": 0.0011783848860354518
+        },
+        {
+          "technique": "T1552.001 Credentials In Files",
+          "count": 36,
+          "percentage_share": 0.0011783848860354518
+        },
+        {
+          "technique": "T1555.003 Credentials from Web Browsers",
+          "count": 36,
+          "percentage_share": 0.0011783848860354518
+        },
+        {
+          "technique": "T1588 Obtain Capabilities",
+          "count": 36,
+          "percentage_share": 0.0011783848860354518
+        },
+        {
+          "technique": "T1584.005 Botnet",
+          "count": 34,
+          "percentage_share": 0.001112919059033482
+        },
+        {
+          "technique": "T1037 Boot or Logon Initialization Scripts",
+          "count": 32,
+          "percentage_share": 0.0010474532320315125
+        },
+        {
+          "technique": "T1037.003 Network Logon Script",
+          "count": 32,
+          "percentage_share": 0.0010474532320315125
+        },
+        {
+          "technique": "T1098.002 Additional Email Delegate Permissions",
+          "count": 32,
+          "percentage_share": 0.0010474532320315125
+        },
+        {
+          "technique": "T1539 Steal Web Session Cookie",
+          "count": 28,
+          "percentage_share": 0.0009165215780275735
+        },
+        {
+          "technique": "T1590 Gather Victim Network Information",
+          "count": 28,
+          "percentage_share": 0.0009165215780275735
+        },
+        {
+          "technique": "T1113 Screen Capture",
+          "count": 27,
+          "percentage_share": 0.0008837886645265887
+        },
+        {
+          "technique": "T1072 Software Deployment Tools",
+          "count": 26,
+          "percentage_share": 0.000851055751025604
+        },
+        {
+          "technique": "T1021.004 SSH",
+          "count": 25,
+          "percentage_share": 0.0008183228375246192
+        },
+        {
+          "technique": "T1048.002 Exfiltration Over Asymmetric Encrypted Non-C2 Protocol",
+          "count": 24,
+          "percentage_share": 0.0007855899240236345
+        },
+        {
+          "technique": "T1211 Exploitation for Defense Evasion",
+          "count": 24,
+          "percentage_share": 0.0007855899240236345
+        },
+        {
+          "technique": "T1434 Unknown Technique",
+          "count": 24,
+          "percentage_share": 0.0007855899240236345
+        },
+        {
+          "technique": "T1546.015 Component Object Model Hijacking",
+          "count": 24,
+          "percentage_share": 0.0007855899240236345
+        },
+        {
+          "technique": "T1588.004 Digital Certificates",
+          "count": 24,
+          "percentage_share": 0.0007855899240236345
+        },
+        {
+          "technique": "T1562.001 Disable or Modify Tools",
+          "count": 20,
+          "percentage_share": 0.0006546582700196954
+        },
+        {
+          "technique": "T1399 Unknown Technique",
+          "count": 18,
+          "percentage_share": 0.0005891924430177259
+        },
+        {
+          "technique": "T1491.001 Internal Defacement",
+          "count": 18,
+          "percentage_share": 0.0005891924430177259
+        },
+        {
+          "technique": "T1448 Unknown Technique",
+          "count": 17,
+          "percentage_share": 0.000556459529516741
+        },
+        {
+          "technique": "T1118 InstallUtil",
+          "count": 16,
+          "percentage_share": 0.0005237266160157563
+        },
+        {
+          "technique": "T1528 Steal Application Access Token",
+          "count": 16,
+          "percentage_share": 0.0005237266160157563
+        },
+        {
+          "technique": "T1573.002 Asymmetric Cryptography",
+          "count": 16,
+          "percentage_share": 0.0005237266160157563
+        },
+        {
+          "technique": "T1589 Gather Victim Identity Information",
+          "count": 16,
+          "percentage_share": 0.0005237266160157563
+        },
+        {
+          "technique": "T1591 Gather Victim Org Information",
+          "count": 16,
+          "percentage_share": 0.0005237266160157563
+        },
+        {
+          "technique": "T1217 Browser Information Discovery",
+          "count": 14,
+          "percentage_share": 0.00045826078901378675
+        },
+        {
+          "technique": "T1003.001 LSASS Memory",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1003.002 Security Account Manager",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1003.003 NTDS",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1003.004 LSA Secrets",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1036.005 Match Legitimate Name or Location",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1038 DLL Search Order Hijacking",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1048.003 Exfiltration Over Unencrypted Non-C2 Protocol",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1056.004 Credential API Hooking",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1069.001 Local Groups",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1076 Remote Desktop Protocol",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1078.002 Domain Accounts",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1078.003 Local Accounts",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1204.002 Malicious File",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1222.002 Linux and Mac File and Directory Permissions Modification",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1404 Unknown Technique",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1412 Unknown Technique",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1503 Credentials from Web Browsers",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1504 PowerShell Profile",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1518.001 Security Software Discovery",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1534 Internal Spearphishing",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1557 Adversary-in-the-Middle",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1562.004 Disable or Modify System Firewall",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1565 Data Manipulation",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1568.001 Fast Flux DNS",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1574.008 Path Interception by Search Order Hijacking",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1578.003 Delete Cloud Instance",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1583.002 DNS Server",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1585.001 Social Media Accounts",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1590.002 DNS",
+          "count": 12,
+          "percentage_share": 0.00039279496201181723
+        },
+        {
+          "technique": "T1590.004 Network Topology",
+          "count": 10,
+          "percentage_share": 0.0003273291350098477
+        },
+        {
+          "technique": "T1590.005 IP Addresses",
+          "count": 10,
+          "percentage_share": 0.0003273291350098477
+        },
+        {
+          "technique": "T1195 Supply Chain Compromise",
+          "count": 9,
+          "percentage_share": 0.00029459622150886295
+        },
+        {
+          "technique": "T1009 Binary Padding",
+          "count": 8,
+          "percentage_share": 0.00026186330800787814
+        },
+        {
+          "technique": "T1055.014 VDSO Hijacking",
+          "count": 8,
+          "percentage_share": 0.00026186330800787814
+        },
+        {
+          "technique": "T1070.006 Timestomp",
+          "count": 8,
+          "percentage_share": 0.00026186330800787814
+        },
+        {
+          "technique": "T1464 Unknown Technique",
+          "count": 8,
+          "percentage_share": 0.00026186330800787814
+        },
+        {
+          "technique": "T1483 Domain Generation Algorithms",
+          "count": 8,
+          "percentage_share": 0.00026186330800787814
+        },
+        {
+          "technique": "T1574.002 DLL Side-Loading",
+          "count": 8,
+          "percentage_share": 0.00026186330800787814
+        },
+        {
+          "technique": "T1600 Weaken Encryption",
+          "count": 8,
+          "percentage_share": 0.00026186330800787814
+        },
+        {
+          "technique": "T1054 Indicator Blocking",
+          "count": 6,
+          "percentage_share": 0.00019639748100590862
+        },
+        {
+          "technique": "T1067 Bootkit",
+          "count": 6,
+          "percentage_share": 0.00019639748100590862
+        },
+        {
+          "technique": "T1070.003 Clear Command History",
+          "count": 6,
+          "percentage_share": 0.00019639748100590862
+        },
+        {
+          "technique": "T1120 Peripheral Device Discovery",
+          "count": 6,
+          "percentage_share": 0.00019639748100590862
+        },
+        {
+          "technique": "T1429 Unknown Technique",
+          "count": 5,
+          "percentage_share": 0.00016366456750492386
+        },
+        {
+          "technique": "T1027.001 Binary Padding",
+          "count": 4,
+          "percentage_share": 0.00013093165400393907
+        },
+        {
+          "technique": "T1027.003 Steganography",
+          "count": 4,
+          "percentage_share": 0.00013093165400393907
+        },
+        {
+          "technique": "T1027.004 Compile After Delivery",
+          "count": 4,
+          "percentage_share": 0.00013093165400393907
+        },
+        {
+          "technique": "T1027.005 Indicator Removal from Tools",
+          "count": 4,
+          "percentage_share": 0.00013093165400393907
+        },
+        {
+          "technique": "T1036.001 Invalid Code Signature",
+          "count": 4,
+          "percentage_share": 0.00013093165400393907
+        },
+        {
+          "technique": "T1055.008 Ptrace System Calls",
+          "count": 4,
+          "percentage_share": 0.00013093165400393907
+        },
+        {
+          "technique": "T1055.011 Extra Window Memory Injection",
+          "count": 4,
+          "percentage_share": 0.00013093165400393907
+        },
+        {
+          "technique": "T1059.003 Windows Command Shell",
+          "count": 4,
+          "percentage_share": 0.00013093165400393907
+        },
+        {
+          "technique": "T1553.006 Code Signing Policy Modification",
+          "count": 4,
+          "percentage_share": 0.00013093165400393907
+        },
+        {
+          "technique": "T1181 Extra Window Memory Injection",
+          "count": 2,
+          "percentage_share": 6.546582700196953e-05
+        },
+        {
+          "technique": "T1213 Data from Information Repositories",
+          "count": 2,
+          "percentage_share": 6.546582700196953e-05
+        },
+        {
+          "technique": "T1408 Unknown Technique",
+          "count": 2,
+          "percentage_share": 6.546582700196953e-05
+        },
+        {
+          "technique": "T1421 Unknown Technique",
+          "count": 2,
+          "percentage_share": 6.546582700196953e-05
+        },
+        {
+          "technique": "T1422 Unknown Technique",
+          "count": 2,
+          "percentage_share": 6.546582700196953e-05
+        },
+        {
+          "technique": "T1516 Unknown Technique",
+          "count": 1,
+          "percentage_share": 3.273291350098477e-05
+        },
+        {
+          "technique": "TA0033 Unknown Technique",
+          "count": 1,
+          "percentage_share": 3.273291350098477e-05
+        }
+      ],
+      "error": null,
+      "analysis": {
+        "has_query": true,
+        "query_length": 451,
+        "has_error": false,
+        "error_type": "NONE",
+        "has_results": true,
+        "result_type": "list",
+        "result_count": 320,
+        "status": "SUCCESS",
+        "status_detail": "Query executed successfully and returned 320 rows"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify the set of IP addresses that have conducted phishing attacks, then characterize what other ATTACKS techniques those same IPs have used (excluding phishing) and quantify how frequently each other technique occurs as a percentage of all their non-phishing attacks.\",\n  \"KEY_ENTITIES\": {\n    \"NODES\": [\n      \"IP (address, botnet, pulse_ids)\",\n      \"Country (name)\",\n      \"ASN (number)\"\n    ],\n    \"RELATIONSHIPS\": [\n      \"(:IP)-[:ATTACKS {technique, protocol, technology, industry, pulse_id, documented_create_date, documented_modified_date}]->(:Country)\",\n      \"(:IP)-[:FROM]->(:Country) (optional contextual enrichment)\",\n      \"(:IP)-[:BELONGS_TO]->(:ASN) (optional contextual enrichment)\"\n    ],\n    \"PRIMARY_FIELDS\": [\n      \"ATTACKS.technique\",\n      \"IP.address\"\n    ],\n    \"OPTIONAL_FIELDS_FOR_BREAKDOWNS\": [\n      \"ATTACKS.protocol\",\n      \"ATTACKS.technology\",\n      \"ATTACKS.industry\",\n      \"ATTACKS.pulse_id\",\n      \"IP.botnet\",\n      \"ASN.number\",\n      \"Country.name\"\n    ]\n  },\n  \"FILTERS\": {\n    \"INCLUSION\": [\n      \"Select IPs that have at least one ATTACKS relationship where technique indicates phishing (e.g., technique = 'phishing', or matches a normalized phishing label).\"\n    ],\n    \"ANALYSIS_SET\": [\n      \"For those selected IPs, consider their ATTACKS relationships with technique values other than phishing (i.e., 'other attacks').\"\n    ],\n    \"EXCLUSIONS\": [\n      \"Exclude ATTACKS records where technique is missing/null if percentages must be meaningful, or alternatively group them under an 'unknown' technique bucket (must be decided).\",\n      \"Exclude 'phishing' from the technique frequency output so the result focuses on other techniques.\"\n    ],\n    \"TIME_WINDOW\": [\n      \"No time constraints are specified; include all available ATTACKS records unless a date range is later provided using documented_create_date / documented_modified_date.\"\n    ],\n    \"PERCENTAGE_DEFINITION_ASSUMPTION\": [\n      \"Assume percentage is based on counts of ATTACKS events/relationships (non-phishing) across the phishing-capable IP set. If the user instead wants percentage of IPs using each technique (IP-level prevalence), that would change the denominator and aggregation.\"\n    ]\n  },\n  \"OUTPUT_FORMAT\": {\n    \"STRUCTURE\": \"A ranked list (or array) of techniques used for non-phishing attacks by phishing-capable IPs, each with count and percentage.\",\n    \"FIELDS_PER_ROW\": [\n      \"technique\",\n      \"attack_count (number of non-phishing ATTACKS events with this technique, by the phishing-capable IPs)\",\n      \"percentage_of_non_phishing_attacks (attack_count / total_non_phishing_attack_count * 100)\"\n    ],\n    \"OPTIONAL_ADDITIONS\": [\n      \"total_phishing_ips (count of distinct IPs that performed phishing)\",\n      \"total_non_phishing_attacks (denominator used for percentages)\",\n      \"distinct_ip_count_using_technique (how many of the phishing-capable IPs used this technique at least once)\"\n    ],\n    \"SORTING\": \"Descending by attack_count (or by percentage, equivalent under same denominator).\"\n  },\n  \"SUGGESTED_APPROACH\": \"First identify distinct IP nodes that have at least one ATTACKS entry labeled as phishing. Using only this IP set, gather all their ATTACKS entries whose technique is not phishing. Aggregate these non-phishing ATTACKS by technique to compute counts. Compute the total count of all non-phishing ATTACKS across the IP set as the denominator, then calculate each technique\u2019s percentage share. Return techniques with counts and percentages, optionally including distinct IP counts per technique and overall totals for context.\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"From IPs that have at least one phishing ATTACKS event, aggregate all their non-phishing ATTACKS events by technique and return each technique\u2019s count and its percentage share of total non-phishing ATTACKS among that IP set.\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "From IPs that have at least one phishing ATTACKS event, aggregate all their non-phishing ATTACKS events by technique and return each technique\u2019s count and its percentage share of total non-phishing ATTACKS among that IP set."
+          ]
+        },
+        "generation": {
+          "fragments": [
+            "MATCH (ip:IP)-[p:ATTACKS]->(:Country)\nWHERE p.technique = 'T1566 Phishing'\nWITH DISTINCT ip\nMATCH (ip)-[a:ATTACKS]->(:Country)\nWHERE a.technique <> 'phishing'\nWITH a.technique AS technique, count(*) AS cnt\nWITH collect({technique: technique, cnt: cnt}) AS rows, sum(cnt) AS total\nUNWIND rows AS row\nRETURN row.technique AS technique,\n       row.cnt AS count,\n       (toFloat(row.cnt) * 100.0) / total AS percentage_share\nORDER BY count DESC, technique"
+          ],
+          "trace": [
+            {
+              "subproblem": "From IPs that have at least one phishing ATTACKS event, aggregate all their non-phishing ATTACKS events by technique and return each technique\u2019s count and its percentage share of total non-phishing ATTACKS among that IP set.",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[p:ATTACKS]->(:Country)\nWHERE p.technique = 'T1566 Phishing'\nWITH DISTINCT ip\nMATCH (ip)-[a:ATTACKS]->(:Country)\nWHERE a.technique <> 'phishing'\nWITH a.technique AS technique, count(*) AS cnt\nWITH collect({technique: technique, cnt: cnt}) AS rows, sum(cnt) AS total\nUNWIND rows AS row\nRETURN row.technique AS technique,\n       row.cnt AS count,\n       (toFloat(row.cnt) * 100.0) / total AS percentage_share\nORDER BY count DESC, technique",
+                  "matched_pairs": [
+                    {
+                      "kind": "relationship",
+                      "label": "ATTACKS",
+                      "property": "technique",
+                      "original": "'phishing'",
+                      "value": "T1566 Phishing"
+                    }
+                  ],
+                  "ok": true,
+                  "error": null,
+                  "rows_preview": [
+                    {
+                      "technique": "T1566 Phishing",
+                      "count": 2863569,
+                      "percentage_share": 93.73295638110146
+                    },
+                    {
+                      "technique": "T1595 Active Scanning",
+                      "count": 19712,
+                      "percentage_share": 0.6452311909314118
+                    },
+                    {
+                      "technique": "unknown",
+                      "count": 18852,
+                      "percentage_share": 0.6170808853205649
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": "MATCH (ip:IP)-[p:ATTACKS]->(:Country)\nWHERE p.technique = 'T1566 Phishing'\nWITH DISTINCT ip\nMATCH (ip)-[a:ATTACKS]->(:Country)\nWHERE a.technique <> 'phishing'\nWITH a.technique AS technique, count(*) AS cnt\nWITH collect({technique: technique, cnt: cnt}) AS rows, sum(cnt) AS total\nUNWIND rows AS row\nRETURN row.technique AS technique,\n       row.cnt AS count,\n       (toFloat(row.cnt) * 100.0) / total AS percentage_share\nORDER BY count DESC, technique"
+        },
+        "final_validation": {
+          "trace": null,
+          "error": null,
+          "results_preview": [
+            {
+              "technique": "T1566 Phishing",
+              "count": 2863569,
+              "percentage_share": 93.73295638110146
+            },
+            {
+              "technique": "T1595 Active Scanning",
+              "count": 19712,
+              "percentage_share": 0.6452311909314118
+            },
+            {
+              "technique": "unknown",
+              "count": 18852,
+              "percentage_share": 0.6170808853205649
+            }
+          ]
+        },
+        "explanation": {
+          "text": "It finds IPs that have performed the **T1566 Phishing** attack technique, then counts and ranks the **other (non\u2011phishing) ATTACKS techniques** those same IPs use, returning each technique\u2019s count and its percentage share of the total."
+        }
+      },
+      "token_usage": {
+        "input": 1603,
+        "output": 1751,
+        "total": 3354
+      },
+      "duration_seconds": 367.435,
+      "started_at": "2026-02-20T07:51:06.808278+00:00",
+      "ended_at": "2026-02-20T07:57:14.243006+00:00",
+      "metadata": {
+        "time": "2026-02-20T07:57:14.224147+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 3,
+      "category": "complex",
+      "prompt": "Detect attack rings: different ASNs that attacked the same country, with the same protocol, technique, and industry within the same calendar month.",
+      "expected_cypher": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN), (ip)-[a:ATTACKS]->(c:Country)\nWITH c.name AS country, a.protocol AS protocol, a.technique AS technique, a.industry AS industry, substring(toString(a.documented_create_date[0]),0,7) AS year_month, asn.number AS asn\nWITH country, protocol, technique, industry, year_month, collect(DISTINCT asn) AS asns, count(*) AS attacks\nWHERE size(asns) > 1\nRETURN country, protocol, technique, industry, year_month, asns, size(asns) AS asn_count\nORDER BY asn_count DESC, attacks DESC",
+      "agent_cypher": "MATCH (ip:IP)-[r:ATTACKS]->(c:Country {name: 'Australia'})\nWHERE trim(r.technique) = 'T1566 Phishing'\nRETURN count(*) AS attacks_count",
+      "response": null,
+      "error": "Timeout after 400 seconds",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Timeout after 400 seconds",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1395,
+        "output": 701,
+        "total": 2096
+      },
+      "duration_seconds": 400.134,
+      "started_at": "2026-02-20T07:57:14.243985+00:00",
+      "ended_at": "2026-02-20T08:03:54.378055+00:00",
+      "metadata": {
+        "time": "2026-02-20T08:00:21.877358+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 4,
+      "category": "decomposable",
+      "prompt": "Report from all IPs attacking from China: total number of distinct attacking IPs, top 5 countries attacked by number of attacks, and top 3 most common attack technique overall.",
+      "expected_cypher": "CALL {\n    MATCH (ip:IP)-[:FROM]->(country:Country)\n    WHERE country.name = 'China'\n    MATCH (ip)-[:ATTACKS]->(:Country)\n    RETURN count(DISTINCT ip) AS chinaAttackingIPCount\n}\nCALL {\n    MATCH (ip:IP)-[:FROM]->(originCountry:Country)\n    WHERE originCountry.name = 'China'\n    MATCH (ip)-[:ATTACKS]->(targetCountry:Country)\n    WITH targetCountry.name AS countryName, count(DISTINCT ip) AS attackCount\n    ORDER BY attackCount DESC\n    LIMIT 5\n    RETURN collect({countryName: countryName, attackCount: attackCount}) AS top5AttackedCountries\n}\nCALL {\n    MATCH (ip:IP)-[:FROM]->(c:Country {name: 'China'})\n    MATCH (ip)-[a:ATTACKS]->()\n    WITH a.technique AS technique, count(a.technique) AS count\n    ORDER BY count DESC\n    LIMIT 3\n    RETURN collect(technique) AS top3Techniques\n}\nRETURN chinaAttackingIPCount, top5AttackedCountries, top3Techniques",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1460,
+        "output": 1709,
+        "total": 3169
+      },
+      "duration_seconds": 91.3,
+      "started_at": "2026-02-20T08:03:54.378898+00:00",
+      "ended_at": "2026-02-20T08:05:25.678963+00:00",
+      "metadata": {
+        "time": "2026-02-20T08:05:25.666296+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 5,
+      "category": "multi-subquery",
+      "prompt": "For IPs from Russia: count distinct IPs, count total attacks, and list top 5 industries targeted.",
+      "expected_cypher": "CALL {\n  MATCH (ip:IP)-[:FROM]->(src:Country {name:'Russia'})\n  RETURN count(DISTINCT ip) AS distinctIPs\n}\nCALL {\n  MATCH (ip:IP)-[:FROM]->(src:Country {name:'Russia'})\n  MATCH (ip)-[:ATTACKS]->(:Country)\n  RETURN count(*) AS totalAttacks\n}\nCALL {\n  MATCH (ip:IP)-[:FROM]->(src:Country {name:'Russia'})\n  MATCH (ip)-[a:ATTACKS]->(:Country)\n  WITH a.industry AS industry, count(*) AS attacks\n  ORDER BY attacks DESC\n  LIMIT 5\n  RETURN collect({industry: industry, attacks: attacks}) AS topIndustries\n}\nRETURN distinctIPs, totalAttacks, topIndustries",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1417,
+        "output": 2040,
+        "total": 3457
+      },
+      "duration_seconds": 104.533,
+      "started_at": "2026-02-20T08:05:25.679496+00:00",
+      "ended_at": "2026-02-20T08:07:10.212490+00:00",
+      "metadata": {
+        "time": "2026-02-20T08:07:10.194693+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 6,
+      "category": "aggregation",
+      "prompt": "Which ASN has attacked the most distinct countries?",
+      "expected_cypher": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN), (ip)-[:ATTACKS]->(c:Country)\nWITH asn.number AS asn, count(DISTINCT c.name) AS countries\nORDER BY countries DESC\nLIMIT 1\nRETURN asn, countries",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Empty query",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "EMPTY_QUERY",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with EMPTY_QUERY"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify the ASN (Autonomous System Number) whose associated IP addresses have launched attacks against the widest range of unique victim countries, i.e., the ASN with the highest count of distinct attacked Country nodes.\",\n  \"KEY_ENTITIES\": {\n    \"NODES\": [\n      \"(:ASN {number})\",\n      \"(:IP {address, botnet, pulse_ids})\",\n      \"(:Country {name})\"\n    ],\n    \"RELATIONSHIPS\": [\n      \"(ip:IP)-[:BELONGS_TO]->(asn:ASN)\",\n      \"(ip:IP)-[:ATTACKS {technique, protocol, technology, industry, pulse_id, documented_create_date, documented_modified_date}]->(country:Country)\"\n    ],\n    \"NOTES\": \"The attacker attribution is derived by linking attacking IPs to ASNs via BELONGS_TO, then counting unique victim countries reached via ATTACKS. The (ip)-[:FROM]->(country) relationship describes IP origin and is not required to answer 'attacked' destinations.\"\n  },\n  \"FILTERS\": {\n    \"REQUIRED_MATCHES\": [\n      \"Only consider IPs that have both a BELONGS_TO relationship to an ASN and at least one ATTACKS relationship to a Country.\"\n    ],\n    \"DISTINCTNESS_RULES\": [\n      \"Count distinct victim countries per ASN (do not double-count repeated attacks from the same ASN to the same country, even across multiple IPs or multiple ATTACKS relationships).\"\n    ],\n    \"OPTIONAL/UNSPECIFIED\": [\n      \"No time window is specified; include all ATTACKS records regardless of documented_create_date/modified_date.\",\n      \"No filtering by technique/protocol/technology/industry/botnet/pulse_id is specified; include all attacks.\"\n    ],\n    \"TIE_HANDLING\": [\n      \"If multiple ASNs tie for the maximum number of distinct attacked countries, return all tied ASNs or explicitly define a deterministic tie-break (e.g., smallest ASN number).\"\n    ]\n  },\n  \"OUTPUT_FORMAT\": \"Return the ASN number and the total count of distinct attacked countries, sorted by that count descending. Optionally include the list of attacked country names for the top ASN(s) to support validation and explainability.\",\n  \"SUGGESTED_APPROACH\": \"Traverse from ASN to its IPs via BELONGS_TO, then from those IPs to victim countries via ATTACKS. For each ASN, aggregate the set of distinct victim countries and compute its size. Rank ASNs by this distinct-country count in descending order and select the top result (or all ties).\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Find the ASN(s) whose associated IPs have ATTACKS relationships to the largest number of distinct Country nodes, and return the ASN number(s) with that distinct-country count (optionally including the country list and handling ties explicitly).\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Find the ASN(s) whose associated IPs have ATTACKS relationships to the largest number of distinct Country nodes, and return the ASN number(s) with that distinct-country count (optionally including the country list and handling ties explicitly)."
+          ]
+        },
+        "generation": {
+          "fragments": [],
+          "trace": [
+            {
+              "subproblem": "Find the ASN(s) whose associated IPs have ATTACKS relationships to the largest number of distinct Country nodes, and return the ASN number(s) with that distinct-country count (optionally including the country list and handling ties explicitly).",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[:ATTACKS]->(c:Country)\nWITH asn, collect(DISTINCT c.name) AS countries, count(DISTINCT c) AS distinct_country_count\nWITH max(distinct_country_count) AS max_distinct_country_count, collect({asn_number: asn.number, distinct_country_count: distinct_country_count, countries: countries}) AS rows\nUNWIND rows AS row\nWITH row, max_distinct_country_count\nWHERE row.distinct_country_count = max_distinct_country_count\nRETURN row.asn_number AS asn_number, row.distinct_country_count AS distinct_country_count, row.countries AS countries\nORDER BY asn_number",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[:ATTACKS]->(c:Country)\nWITH asn, count(DISTINCT c) AS country_count, collect(DISTINCT c.name) AS countries\nWITH max(country_count) AS max_country_count, collect({asn_number: asn.number, country_count: country_count, countries: countries}) AS rows\nUNWIND rows AS row\nWITH row, max_country_count\nWHERE row.country_count = max_country_count\nRETURN row.asn_number AS asn_number, row.country_count AS distinct_country_count, row.countries AS countries\nORDER BY asn_number",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (asn:ASN)<-[:BELONGS_TO]-(ip:IP)-[r:ATTACKS]->(c:Country)\nWITH asn, collect(DISTINCT c.name) AS countries, count(DISTINCT c) AS distinct_country_count\nWITH max(distinct_country_count) AS max_country_count, collect({asn_number: asn.number, distinct_country_count: distinct_country_count, countries: countries}) AS rows\nUNWIND rows AS row\nWITH row\nWHERE row.distinct_country_count = max_country_count\nRETURN row.asn_number AS asn_number, row.distinct_country_count AS distinct_country_count, row.countries AS countries\nORDER BY asn_number",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": ""
+        },
+        "final_validation": {
+          "trace": [
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            },
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            },
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            }
+          ],
+          "error": "Empty query",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 3359,
+        "output": 1565,
+        "total": 4924
+      },
+      "duration_seconds": 213.044,
+      "started_at": "2026-02-20T08:07:10.213006+00:00",
+      "ended_at": "2026-02-20T08:10:43.257346+00:00",
+      "metadata": {
+        "time": "2026-02-20T08:10:43.243956+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 7,
+      "category": "graph-structure",
+      "prompt": "Find IPs that attacked more than 10 distinct countries.",
+      "expected_cypher": "MATCH (ip:IP)-[:ATTACKS]->(c:Country)\nWITH ip.address AS ip, count(DISTINCT c.name) AS countries\nWHERE countries > 10\nRETURN ip, countries\nORDER BY countries DESC",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Empty query",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "EMPTY_QUERY",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with EMPTY_QUERY"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify attacker IP addresses that have targeted a geographically broad set of victims by attacking more than 10 unique countries, likely to flag widely-scanning or globally active malicious sources.\",\n  \"KEY_ENTITIES\": {\n    \"NODES\": [\n      \"IP (address, botnet, pulse_ids)\",\n      \"Country (name)\",\n      \"ASN (number) [optional enrichment]\"\n    ],\n    \"RELATIONSHIPS\": [\n      \"IP -[ATTACKS]-> Country (technique, protocol, technology, industry, pulse_id, documented_create_date, documented_modified_date)\",\n      \"IP -[FROM]-> Country [optional origin context; not required for counting attacked countries]\",\n      \"IP -[BELONGS_TO]-> ASN [optional ownership/network attribution context]\"\n    ]\n  },\n  \"FILTERS\": [\n    \"Count distinct Country nodes reached via ATTACKS per IP\",\n    \"Return only IPs where distinct attacked-country count > 10\",\n    \"Use distinctness on Country (e.g., by Country node/name) to avoid double-counting repeated attacks on the same country\",\n    \"No additional constraints are specified on ATTACKS properties (technique/protocol/technology/industry/pulse_id/date), so include all ATTACKS unless further scoped\"\n  ],\n  \"OUTPUT_FORMAT\": \"Return a list of IP addresses with the number of distinct countries they attacked (and optionally the list of country names). Optionally include IP metadata (botnet, pulse_ids) and attribution (ASN number, FROM country) if available. Results should be sortable by attacked-country count descending.\",\n  \"SUGGESTED_APPROACH\": \"Traverse from each IP to all Countries it ATTACKS, aggregate per IP using a distinct set of countries, compute the size of that set, filter to those above the threshold (>10), and present the IP with the computed count (optionally collect country names and enrich with ASN/FROM relationships).\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Find each IP that has ATTACKS relationships to more than 10 distinct Country nodes, returning the IP address and the distinct attacked-country count (optionally with the country list and ASN/FROM enrichment).\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Find each IP that has ATTACKS relationships to more than 10 distinct Country nodes, returning the IP address and the distinct attacked-country count (optionally with the country list and ASN/FROM enrichment)."
+          ]
+        },
+        "generation": {
+          "fragments": [],
+          "trace": [
+            {
+              "subproblem": "Find each IP that has ATTACKS relationships to more than 10 distinct Country nodes, returning the IP address and the distinct attacked-country count (optionally with the country list and ASN/FROM enrichment).",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(c:Country)\nWITH ip, count(DISTINCT c) AS distinct_attacked_countries, collect(DISTINCT c.name) AS attacked_country_list\nWHERE distinct_attacked_countries > 10\nOPTIONAL MATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nOPTIONAL MATCH (ip)-[:FROM]->(src:Country)\nRETURN\n  ip.address AS ip_address,\n  distinct_attacked_countries,\n  attacked_country_list,\n  asn.number AS asn_number,\n  src.name AS from_country\nORDER BY distinct_attacked_countries DESC, ip_address",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(c:Country)\nWITH ip, count(DISTINCT c) AS distinct_attacked_country_count, collect(DISTINCT c.name) AS attacked_countries\nWHERE distinct_attacked_country_count > 10\nOPTIONAL MATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nOPTIONAL MATCH (ip)-[:FROM]->(fromC:Country)\nWITH ip, distinct_attacked_country_count, attacked_countries, collect(DISTINCT asn.number) AS asn_numbers, collect(DISTINCT fromC.name) AS from_countries\nRETURN ip.address AS ip_address,\n       distinct_attacked_country_count,\n       attacked_countries,\n       asn_numbers,\n       from_countries\nORDER BY distinct_attacked_country_count DESC, ip_address",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(c:Country)\nWITH ip, count(DISTINCT c) AS distinct_attacked_countries, collect(DISTINCT c.name) AS attacked_countries\nWHERE distinct_attacked_countries > 10\nOPTIONAL MATCH (ip)-[:BELONGS_TO]->(asn:ASN)\nOPTIONAL MATCH (ip)-[:FROM]->(src:Country)\nWITH ip, distinct_attacked_countries, attacked_countries,\n     collect(DISTINCT asn.number) AS asn_numbers,\n     collect(DISTINCT src.name) AS from_countries\nRETURN ip.address AS ip_address,\n       distinct_attacked_countries,\n       attacked_countries,\n       asn_numbers,\n       from_countries\nORDER BY distinct_attacked_countries DESC, ip_address ASC",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": ""
+        },
+        "final_validation": {
+          "trace": [
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            },
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            },
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            }
+          ],
+          "error": "Empty query",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 3378,
+        "output": 1106,
+        "total": 4484
+      },
+      "duration_seconds": 205.55,
+      "started_at": "2026-02-20T08:10:43.257983+00:00",
+      "ended_at": "2026-02-20T08:14:08.808153+00:00",
+      "metadata": {
+        "time": "2026-02-20T08:14:08.795209+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 8,
+      "category": "matcher-needed",
+      "prompt": "Top 5 target countries attacked by IPs from United States using protocol ssh.",
+      "expected_cypher": "MATCH (ip:IP)-[:FROM]->(src:Country {name:'United States of America'})\nMATCH (ip)-[a:ATTACKS {protocol:'RDP'}]->(tgt:Country)\nWITH tgt.name AS country, count(*) AS attacks\nORDER BY attacks DESC\nLIMIT 5\nRETURN country, attacks",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1258,
+        "output": 827,
+        "total": 2085
+      },
+      "duration_seconds": 77.065,
+      "started_at": "2026-02-20T08:14:08.808766+00:00",
+      "ended_at": "2026-02-20T08:15:25.873831+00:00",
+      "metadata": {
+        "time": "2026-02-20T08:15:25.858436+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 9,
+      "category": "temporal",
+      "prompt": "Monthly attack counts per technique (grouped by YYYY-MM).",
+      "expected_cypher": "MATCH (:IP)-[a:ATTACKS]->(:Country)\nWITH substring(toString(a.documented_create_date[0]),0,7) AS year_month, a.technique AS technique, count(*) AS attacks\nRETURN year_month, technique, attacks\nORDER BY year_month DESC, attacks DESC",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1300,
+        "output": 877,
+        "total": 2177
+      },
+      "duration_seconds": 78.943,
+      "started_at": "2026-02-20T08:15:25.875957+00:00",
+      "ended_at": "2026-02-20T08:16:44.819171+00:00",
+      "metadata": {
+        "time": "2026-02-20T08:16:44.806362+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 10,
+      "category": "discovery",
+      "prompt": "List distinct technologies observed in attacks against the Finance industry, with counts.",
+      "expected_cypher": "MATCH (:IP)-[a:ATTACKS]->(:Country)\nWHERE a.industry = 'Finance'\nWITH a.technology AS technology, count(*) AS attacks\nORDER BY attacks DESC\nRETURN technology, attacks",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1246,
+        "output": 877,
+        "total": 2123
+      },
+      "duration_seconds": 79.731,
+      "started_at": "2026-02-20T08:16:44.819901+00:00",
+      "ended_at": "2026-02-20T08:18:04.551292+00:00",
+      "metadata": {
+        "time": "2026-02-20T08:18:04.538208+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 11,
+      "category": "multi-hop",
+      "prompt": "For each ASN, top 3 protocols it used when attacking France.",
+      "expected_cypher": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[a:ATTACKS]->(c:Country {name:'France'})\nWITH asn.number AS asn, a.protocol AS protocol, count(*) AS cnt\nORDER BY asn, cnt DESC\nWITH asn, collect({protocol: protocol, cnt: cnt}) AS items\nUNWIND items[0..3] AS top\nRETURN asn, top.protocol AS protocol, top.cnt AS attacks\nORDER BY asn, attacks DESC",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1299,
+        "output": 746,
+        "total": 2045
+      },
+      "duration_seconds": 75.741,
+      "started_at": "2026-02-20T08:18:04.551874+00:00",
+      "ended_at": "2026-02-20T08:19:20.293161+00:00",
+      "metadata": {
+        "time": "2026-02-20T08:19:20.270425+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 12,
+      "category": "impossible",
+      "prompt": "List the top 5 malware families used in attacks.",
+      "expected_cypher": "RETURN 'Not enough information in schema (no malware family)' AS note",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Empty query",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "EMPTY_QUERY",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with EMPTY_QUERY"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": "{\n  \"INTENT\": \"Identify which malware families are most frequently associated with recorded attacks in the dataset, returning the top five by observed usage.\",\n  \"KEY_ENTITIES\": \"Primary: IP nodes and their outgoing ATTACKS relationships to Country nodes. Relevant fields: IP.address, IP.botnet, IP.pulse_ids; ATTACKS.technique, ATTACKS.protocol, ATTACKS.technology, ATTACKS.industry, ATTACKS.pulse_id, ATTACKS.documented_create_date, ATTACKS.documented_modified_date. Secondary (contextual only unless further broken down): IP-FROM->Country and IP-BELONGS_TO->ASN.\",\n  \"FILTERS\": \"No explicit filters were provided beyond ranking and limiting to the top 5. Ambiguity to resolve: the schema does not explicitly contain a 'malware_family' attribute; a mapping/assumption is required (most likely treating either IP.botnet or ATTACKS.technique as the malware family label, or using ATTACKS.technology if that is where malware families are encoded). Optional filters to consider if the user later specifies them: time range using documented_create_date/modified_date, specific protocol/industry/technology, specific victim/target country (ATTACKS -> Country), or excluding null/unknown family labels.\",\n  \"OUTPUT_FORMAT\": \"Return a ranked list of 5 entries, each including: malware_family (string label) and attack_count (number of ATTACKS observations/edges associated with that family). Optionally include ties handling and a secondary sort (e.g., alphabetically) if counts match.\",\n  \"SUGGESTED_APPROACH\": \"Choose the property that represents 'malware family' (prefer an explicit field if available; otherwise use a consistent proxy such as IP.botnet or ATTACKS.technique). Traverse from IP to ATTACKS relationships, extract the chosen family label, filter out missing/empty labels, aggregate by family label counting distinct attack observations (typically counting ATTACKS relationships, optionally distinct by pulse_id if that better represents unique incidents), sort by count descending, and return the top 5.\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Aggregate ATTACKS records by the property that encodes malware family (e.g., IP.botnet or ATTACKS.technique), count occurrences, sort descending, and return the top 5 malware families with their attack counts.\"\n}",
+          "needs_decomposition": false
+        },
+        "decomposition": {
+          "subproblems": [
+            "Aggregate ATTACKS records by the property that encodes malware family (e.g., IP.botnet or ATTACKS.technique), count occurrences, sort descending, and return the top 5 malware families with their attack counts."
+          ]
+        },
+        "generation": {
+          "fragments": [],
+          "trace": [
+            {
+              "subproblem": "Aggregate ATTACKS records by the property that encodes malware family (e.g., IP.botnet or ATTACKS.technique), count occurrences, sort descending, and return the top 5 malware families with their attack counts.",
+              "attempts": [
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(:Country)\nWITH coalesce(ip.botnet, r.technique) AS malware_family, count(*) AS attack_count\nWHERE malware_family IS NOT NULL AND malware_family <> 'unknown'\nRETURN malware_family, attack_count\nORDER BY attack_count DESC\nLIMIT 5",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (ip:IP)-[r:ATTACKS]->(:Country)\nWITH coalesce(ip.botnet, r.technique) AS malware_family, count(*) AS attack_count\nWHERE malware_family IS NOT NULL AND malware_family <> '' AND malware_family <> 'unknown'\nRETURN malware_family, attack_count\nORDER BY attack_count DESC\nLIMIT 5",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                },
+                {
+                  "fragment": "MATCH (ip:IP)-[a:ATTACKS]->(:Country)\nWITH coalesce(ip.botnet, a.technique) AS malware_family\nWHERE malware_family IS NOT NULL AND malware_family <> 'unknown'\nRETURN malware_family, count(*) AS attack_count\nORDER BY attack_count DESC\nLIMIT 5",
+                  "matched_pairs": [],
+                  "ok": false,
+                  "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+                  "rows_preview": null
+                }
+              ]
+            }
+          ]
+        },
+        "composition": {
+          "final_query": ""
+        },
+        "final_validation": {
+          "trace": [
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            },
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            },
+            {
+              "query": "",
+              "ok": false,
+              "error": "Empty query",
+              "rows_preview": null
+            }
+          ],
+          "error": "Empty query",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 3122,
+        "output": 1908,
+        "total": 5030
+      },
+      "duration_seconds": 222.322,
+      "started_at": "2026-02-20T08:19:20.293822+00:00",
+      "ended_at": "2026-02-20T08:23:02.615792+00:00",
+      "metadata": {
+        "time": "2026-02-20T08:23:02.600150+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 13,
+      "category": "impossible",
+      "prompt": "What destination ports are most targeted?",
+      "expected_cypher": "RETURN 'Not enough information in schema (no destination port)' AS note",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 3051,
+        "output": 1609,
+        "total": 4660
+      },
+      "duration_seconds": 218.966,
+      "started_at": "2026-02-20T08:23:02.616367+00:00",
+      "ended_at": "2026-02-20T08:26:41.582279+00:00",
+      "metadata": {
+        "time": "2026-02-20T08:26:41.565965+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 14,
+      "category": "matcher-needed",
+      "prompt": "How many attacks used technique ' Phishing' against Australia?",
+      "expected_cypher": "MATCH (:IP)-[a:ATTACKS {technique:'T1566 Phishing'}]->(:Country {name:'Australia'})\nRETURN count(a) AS attacks",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 1199,
+        "output": 649,
+        "total": 1848
+      },
+      "duration_seconds": 74.468,
+      "started_at": "2026-02-20T08:26:41.582819+00:00",
+      "ended_at": "2026-02-20T08:27:56.051158+00:00",
+      "metadata": {
+        "time": "2026-02-20T08:27:56.031972+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    },
+    {
+      "index": 15,
+      "category": "complex",
+      "prompt": "Identify pairs of ASNs that both attacked the same country using the same technique within the same month; return top 10 pairs by co-attack count.",
+      "expected_cypher": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[a:ATTACKS]->(c:Country)\nWITH c.name AS country, a.technique AS technique, substring(toString(a.documented_create_date[0]),0,7) AS year_month, asn.number AS asn\nWITH country, technique, year_month, collect(DISTINCT asn)[0..50] AS asns\nUNWIND range(0, size(asns)-2) AS i\nUNWIND range(i+1, size(asns)-1) AS j\nWITH asns[i] AS asnA, asns[j] AS asnB, country, technique, year_month\nRETURN asnA, asnB, country, technique, year_month, count(*) AS co_attacks\nORDER BY co_attacks DESC\nLIMIT 10",
+      "agent_cypher": null,
+      "response": null,
+      "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+      "analysis": {
+        "has_query": false,
+        "query_length": 0,
+        "has_error": true,
+        "error_type": "OTHER",
+        "has_results": false,
+        "result_type": "None",
+        "result_count": null,
+        "status": "ERROR",
+        "status_detail": "Failed with OTHER"
+      },
+      "agents": {
+        "expansion": {
+          "expanded": null,
+          "needs_decomposition": null
+        },
+        "decomposition": {
+          "subproblems": null
+        },
+        "generation": {
+          "fragments": null,
+          "trace": null
+        },
+        "composition": {
+          "final_query": null
+        },
+        "final_validation": {
+          "trace": null,
+          "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+          "results_preview": null
+        },
+        "explanation": {
+          "text": null
+        }
+      },
+      "token_usage": {
+        "input": 2670,
+        "output": 2959,
+        "total": 5629
+      },
+      "duration_seconds": 174.061,
+      "started_at": "2026-02-20T08:27:56.051703+00:00",
+      "ended_at": "2026-02-20T08:30:50.112234+00:00",
+      "metadata": {
+        "time": "2026-02-20T08:30:50.090274+00:00",
+        "model": "gpt-5.2",
+        "provider": "openai",
+        "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67",
+        "langfuse": {
+          "enabled": true,
+          "host": "https://us.cloud.langfuse.com"
+        }
+      }
+    }
+  ]
+}

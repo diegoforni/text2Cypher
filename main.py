@@ -12,6 +12,7 @@ from pathlib import Path
 from langgraph.graph import StateGraph, END
 from langfuse import Langfuse
 from neo4j import GraphDatabase
+from neo4j.time import Date, DateTime, Time, Duration
 
 from agents.expansion_agent import ExpansionAgent
 from agents.decomposition_agent import DecompositionAgent
@@ -22,6 +23,7 @@ from agents.composition_agent import CompositionAgent
 from agents.langfuse_utils import start_span, finish_span
 from config import (
     get_llm,
+    get_generation_llm,
     NEO4J_URI,
     NEO4J_USER,
     NEO4J_PASSWORD,
@@ -34,6 +36,22 @@ from config import (
 
 
 logger = logging.getLogger(__name__)
+
+
+class Neo4jEncoder(json.JSONEncoder):
+    """Custom JSON encoder for Neo4j temporal types."""
+    
+    def default(self, obj):
+        if isinstance(obj, (Date, DateTime, Time)):
+            return obj.iso_format()
+        elif isinstance(obj, Duration):
+            return {
+                "months": obj.months,
+                "days": obj.days,
+                "seconds": obj.seconds,
+                "nanoseconds": obj.nanoseconds
+            }
+        return super().default(obj)
 
 
 class TokenCountingLLM:
@@ -140,12 +158,23 @@ def build_app(
     langfuse: Langfuse | None,
     progress_callback: Optional[Callable[[str, str, Optional[dict]], None]] = None,
     clarification_enabled: bool = False,
+    generation_llm: object = None,
 ):
-    """Create the LangGraph application wiring all agents."""
+    """Create the LangGraph application wiring all agents.
+    
+    Args:
+        llm: Main LLM for expansion, decomposition, composition, etc.
+        langfuse: Langfuse client for tracing.
+        progress_callback: Optional callback for progress updates.
+        clarification_enabled: Whether to enable clarification questions.
+        generation_llm: Optional separate LLM for Cypher generation. If None, uses llm.
+    """
     if llm is None:
         raise RuntimeError(
             "LLM provider or API key not configured. Set MODEL_PROVIDER and API key environment variables."
         )
+    # Use separate generation LLM if provided, otherwise use main llm
+    gen_llm = generation_llm if generation_llm is not None else llm
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
     expander = ExpansionAgent(llm, langfuse, ask_when_ambiguous=clarification_enabled)
@@ -239,9 +268,12 @@ def build_app(
         import re
 
         _IDENT = r"(?:`[^`]+`|[A-Za-z_][A-Za-z0-9_`]*)"
+        # Pattern to match alias.prop = "value" with optional function calls wrapping it
+        # Matches: alias.prop = "value", func(alias.prop) = "value", func1(func2(alias.prop)) = "value"
         _EXACT_VALUE_PATTERN = re.compile(
             rf"""
-            (?P<alias>{_IDENT})\.(?P<prop>{_IDENT})\s*=\s*
+            (?:[A-Za-z_][A-Za-z0-9_]*\s*\(\s*)*(?P<property_access>{_IDENT}\.{_IDENT})(?:\s*\)\s*)*
+            \s*=\s*
             (
                 (?P<quote>['\"])(?P<literal>[^'\"$]+)(?P=quote)
                 |
@@ -251,11 +283,11 @@ def build_app(
             flags=re.IGNORECASE | re.VERBOSE,
         )
         _RELATIONSHIP_MAP_PATTERN = re.compile(
-            r"\[(?P<alias>{id})?\s*:(?P<label>{id})\s*\{{(?P<body>[^\}]*)\}\]".replace("{id}", _IDENT),
+            r"\[(?P<alias>{id})?\s*:(?P<label>{id})\s*\{(?P<body>[^}]*)\}]".replace("{id}", _IDENT),
             flags=re.IGNORECASE,
         )
         _NODE_MAP_PATTERN = re.compile(
-            r"\((?P<alias>{id})?\s*:(?P<label>{id})\s*\{{(?P<body>[^\}]*)\}\)".replace("{id}", _IDENT),
+            r"\((?P<alias>{id})?\s*:(?P<label>{id})\s*\{(?P<body>[^}]*)\)".replace("{id}", _IDENT),
             flags=re.IGNORECASE,
         )
         _MAP_ENTRY_PATTERN = re.compile(
@@ -276,8 +308,17 @@ def build_app(
                 value = literal if literal is not None else number
                 if value is None:
                     continue
-                alias = m.group("alias")
-                prop = m.group("prop")
+
+                # Extract alias and property from either property_access or property_access_fn group
+                property_access = m.group("property_access") or m.group("property_access_fn") or ""
+                if "." in property_access:
+                    parts = property_access.split(".", 1)
+                    alias = parts[0]
+                    prop = parts[1]
+                else:
+                    alias = ""
+                    prop = ""
+
                 if literal is not None:
                     start, end = m.start("literal"), m.end("literal")
                     quote = m.group("quote") or ""
@@ -344,6 +385,27 @@ def build_app(
             for match_info, new_value in sorted(replacements, key=lambda item: int(item[0]["start"]), reverse=True):
                 start = int(match_info["start"])
                 end = int(match_info["end"])
+
+                # Check if the literal is wrapped in a case-changing function
+                # Look backwards from the literal to find function calls
+                search_start = max(0, start - 200)  # Look back up to 200 chars
+                context = updated[search_start:start]
+
+                # Only lowercase if there's an actual case-changing function
+                case_insensitive = False
+                for func in ['toLower(', 'tolower(', 'lower(']:  # toLower functions
+                    if func.lower() in context.lower():
+                        case_insensitive = True
+                        break
+                for func in ['toUpper(', 'toupper(', 'upper(']:  # toUpper functions
+                    if func.lower() in context.lower():
+                        new_value = new_value.upper()
+                        break
+
+                # If wrapped in case-insensitive function, lowercase the replacement
+                if case_insensitive:
+                    new_value = new_value.lower()
+
                 updated = updated[:start] + new_value + updated[end:]
             return updated
 
@@ -367,7 +429,7 @@ def build_app(
 
             def generate(idx: int) -> tuple[int, str, List[dict]]:
                 sub = subproblems[idx]
-                local_generator = GenerationAgent(llm, langfuse)
+                local_generator = GenerationAgent(gen_llm, langfuse)
                 prompt = sub
                 if previous[idx]:
                     prompt += (
@@ -380,25 +442,41 @@ def build_app(
                 )
                 # After generation, verify any literal values only if clearly needed
                 literal_matches = _find_exact_value_literals(fragment)
+                import sys
+                print(f"[MAIN] Generated fragment, found {len(literal_matches)} literal matches", file=sys.stderr)
+                print(f"[MAIN] Fragment: {fragment[:200]}...", file=sys.stderr)
+                print(f"[MAIN] literal_matches detail: {literal_matches}", file=sys.stderr)
                 pairs: List[dict] = []
-                if literal_matches:
-                    matched_pairs = matcher.match(fragment, state["schema"])
-                    replacements: list[tuple[dict[str, object], str]] = []
-                    selected_pairs: List[dict] = []
 
+                # ALWAYS call the matcher to find and fix literal values
+                print(f"[MAIN] Calling matcher.match()...", file=sys.stderr)
+                matched_pairs = matcher.match(fragment, state["schema"])
+                print(f"[MAIN] Matcher returned {len(matched_pairs)} pairs", file=sys.stderr)
+                replacements: list[tuple[dict[str, object], str]] = []
+                selected_pairs: List[dict] = []
+
+                # If we found literal matches in the fragment, try to match them with matcher results
+                if literal_matches:
                     for literal_match in literal_matches:
                         for pair in matched_pairs:
                             prop_norm = _normalize_identifier(pair.get("property", ""))
                             label_norm = _normalize_identifier(pair.get("label", ""))
                             pair_original = str(pair.get("original", ""))
+                            # Strip quotes from pair_original (LLM extraction includes them)
+                            pair_original_clean = pair_original.strip().strip('"').strip("'")
                             literal_value = str(literal_match["literal"])
                             labels_match = True
                             match_label_norm = str(literal_match.get("label_norm", ""))
                             if match_label_norm and label_norm:
                                 labels_match = label_norm == match_label_norm
+
+                            print(f"[MAIN] Comparing: prop_norm={prop_norm} vs {literal_match.get('property_norm')}, labels_match={labels_match}", file=sys.stderr)
+                            print(f"[MAIN]   pair_original='{pair_original}' (cleaned: '{pair_original_clean}') vs literal_value='{literal_value}'", file=sys.stderr)
+                            print(f"[MAIN]   Equal? {pair_original_clean == literal_value}", file=sys.stderr)
+
                             if (
                                 prop_norm == literal_match["property_norm"]
-                                and pair_original.strip() == literal_value.strip()
+                                and pair_original_clean == literal_value
                                 and labels_match
                             ):
                                 replacements.append((literal_match, str(pair.get("value", literal_value))))
@@ -406,9 +484,15 @@ def build_app(
                                     selected_pairs.append(pair)
                                 break
 
-                    if replacements:
-                        fragment = _apply_exact_replacements(fragment, replacements)
-                        pairs = selected_pairs
+                import sys
+                print(f"[MAIN] Found {len(replacements)} replacements to apply", file=sys.stderr)
+                if replacements:
+                    print(f"[MAIN] Replacements: {replacements}", file=sys.stderr)
+                    fragment = _apply_exact_replacements(fragment, replacements)
+                    pairs = selected_pairs
+                    print(f"[MAIN] Fragment after replacement: {fragment[:200]}...", file=sys.stderr)
+                else:
+                    print(f"[MAIN] No replacements applied", file=sys.stderr)
                 return idx, fragment, pairs
 
             with ThreadPoolExecutor(max_workers=len(pending)) as executor:
@@ -620,7 +704,7 @@ def save_run(question: str, result: GraphState, llm: object) -> None:
         "clarification_needed": result.get("clarification_needed"),
         "clarification_question": result.get("clarification_question"),
     }
-    payload_text = json.dumps(payload, indent=2)
+    payload_text = json.dumps(payload, indent=2, cls=Neo4jEncoder)
 
     targets = [Path("last_run.json")]
     fallback_dir = os.getenv("LAST_RUN_DIR")
@@ -660,6 +744,11 @@ def run(
             "LLM provider or API key not configured. Set MODEL_PROVIDER and API key environment variables."
         )
     llm = TokenCountingLLM(llm)
+    
+    # Get optional separate generation LLM
+    gen_llm_raw = get_generation_llm()
+    gen_llm = TokenCountingLLM(gen_llm_raw) if gen_llm_raw else None
+    
     langfuse_client = None
     trace = None
     if LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY:
@@ -669,7 +758,7 @@ def run(
             host=LANGFUSE_HOST,
         )
         trace = start_span(langfuse_client, "run", {"request": question, "schema": schema})
-    app = build_app(llm, trace, progress_callback, clarification_enabled=clarification_enabled)
+    app = build_app(llm, trace, progress_callback, clarification_enabled=clarification_enabled, generation_llm=gen_llm)
     inputs: GraphState = {"request": question, "schema": schema}
     try:
         result = app.invoke(inputs)

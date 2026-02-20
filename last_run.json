@@ -1,0 +1,90 @@
+{
+  "question": "Identify pairs of ASNs that both attacked the same country using the same technique within the same month; return top 10 pairs by co-attack count.",
+  "cypher": "",
+  "response": null,
+  "error": "Empty query",
+  "agents": {
+    "expansion": {
+      "expanded": "{\n  \"INTENT\": \"Find which Autonomous Systems (ASNs) appear to be coordinating or overlapping in hostile activity by identifying pairs of ASNs that attacked the same target country using the same attack technique during the same calendar month, then rank the ASN pairs by how often this co-occurrence happens.\",\n  \"KEY_ENTITIES\": {\n    \"NODES\": [\n      \"(:IP {address, botnet, pulse_ids}) as the attacking source observed in attack events\",\n      \"(:ASN {number}) as the network ownership/grouping for IPs\",\n      \"(:Country {name}) as the attack target (via ATTACKS) and optionally the IP\u2019s origin country (via FROM)\"\n    ],\n    \"RELATIONSHIPS\": [\n      \"(ip:IP)-[:ATTACKS {technique, protocol, technology, industry, pulse_id, documented_create_date, documented_modified_date}]->(country:Country) as the attack event record and its attributes\",\n      \"(ip:IP)-[:BELONGS_TO]->(asn:ASN) to attribute each attacking IP to an ASN\",\n      \"(ip:IP)-[:FROM]->(country:Country) as optional context about attacker geolocation (not required for matching but may be used for enrichment/validation)\"\n    ]\n  },\n  \"FILTERS\": {\n    \"CO_ATTACK_MATCH_CONDITION\": [\n      \"Two different ASNs (asnA != asnB) must each be linked (through their IPs) to attack events targeting the same Country node\",\n      \"Those attacks must share the same ATTACKS.technique value\",\n      \"Those attacks must occur within the same calendar month (month derived from ATTACKS.documented_create_date; if missing, consider whether to fall back to documented_modified_date, but default should be documented_create_date)\"\n    ],\n    \"PAIR_DEDUPLICATION\": [\n      \"Treat (asnA, asnB) as an unordered pair so (A,B) and (B,A) are counted once\",\n      \"Exclude self-pairs where both sides are the same ASN\"\n    ],\n    \"DATA_QUALITY_ASSUMPTIONS\": [\n      \"ATTACKS.technique should be non-null to participate (otherwise cannot match on technique)\",\n      \"documented_create_date must be parseable into year-month; events without a valid date should be excluded from month-based matching\"\n    ],\n    \"COUNTING_DEFINITION\": [\n      \"Co-attack count should measure how many distinct (target country, technique, year-month) groupings are shared by the pair; optionally, if multiple events exist for the same grouping, clarify whether to count distinct groupings (recommended for stability) or raw event overlaps\"\n    ],\n    \"TOP_N\": \"Return only the top 10 ASN pairs by descending co-attack count (tie-breakers can be consistent secondary sorting such as ASN numbers).\"\n  },\n  \"OUTPUT_FORMAT\": {\n    \"RESULT_ROWS\": \"One row per ASN pair\",\n    \"FIELDS\": [\n      \"asn1 (ASN number; normalized so asn1 < asn2 for consistent pairing)\",\n      \"asn2 (ASN number)\",\n      \"co_attack_count (integer)\",\n      \"optional: sample_context (e.g., a small list of shared (country, technique, month) tuples for interpretability)\"\n    ],\n    \"ORDERING\": \"Sort by co_attack_count descending, then by asn1/asn2 ascending for deterministic output\",\n    \"LIMIT\": 10\n  },\n  \"SUGGESTED_APPROACH\": \"Start from attack events (IP-ATTACKS->target country) and join each attacking IP to its ASN via BELONGS_TO. Derive a year-month key from documented_create_date and form normalized groupings by (asn, target country, technique, year-month). Then self-join these groupings on identical (target country, technique, year-month) where the ASNs differ, normalize the ASN pair ordering to avoid double counting, aggregate the number of shared groupings per ASN pair, and finally sort and return the top 10 pairs.\",\n  \"NEEDS_DECOMPOSITION\": false,\n  \"SINGLE_TASK\": \"Compute the top 10 unordered pairs of distinct ASNs that share the highest count of matching (target country, ATTACKS.technique, calendar month from documented_create_date) attack groupings, based on IPs that BELONGS_TO each ASN and ATTACKS the same Country with the same technique in the same month.\"\n}",
+      "needs_decomposition": false,
+      "clarification_needed": false,
+      "clarification_question": ""
+    },
+    "decomposition": {
+      "subproblems": [
+        "Compute the top 10 unordered pairs of distinct ASNs that share the highest count of matching (target country, ATTACKS.technique, calendar month from documented_create_date) attack groupings, based on IPs that BELONGS_TO each ASN and ATTACKS the same Country with the same technique in the same month."
+      ]
+    },
+    "generation": {
+      "fragments": [],
+      "trace": [
+        {
+          "subproblem": "Compute the top 10 unordered pairs of distinct ASNs that share the highest count of matching (target country, ATTACKS.technique, calendar month from documented_create_date) attack groupings, based on IPs that BELONGS_TO each ASN and ATTACKS the same Country with the same technique in the same month.",
+          "attempts": [
+            {
+              "fragment": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[a:ATTACKS]->(country:Country)\nWITH\n  country,\n  a.technique AS technique,\n  date.truncate('month', a.documented_create_date) AS year_month,\n  collect(DISTINCT asn.number) AS asns\nWHERE size(asns) > 1\nUNWIND range(0, size(asns) - 2) AS i\nUNWIND range(i + 1, size(asns) - 1) AS j\nWITH asns[i] AS asn1, asns[j] AS asn2, country, technique, year_month\nWITH asn1, asn2, count(*) AS shared_groupings\nORDER BY shared_groupings DESC, asn1 ASC, asn2 ASC\nLIMIT 10\nRETURN asn1, asn2, shared_groupings",
+              "matched_pairs": [],
+              "ok": false,
+              "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+              "rows_preview": null
+            },
+            {
+              "fragment": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[a:ATTACKS]->(target:Country)\nWITH target.name AS target_country, a.technique AS technique, date.truncate('month', a.documented_create_date) AS year_month, collect(DISTINCT asn.number) AS asnNums\nWHERE size(asnNums) > 1\nUNWIND asnNums AS n\nWITH target_country, technique, year_month, n\nORDER BY n\nWITH target_country, technique, year_month, collect(n) AS asns\nUNWIND range(0, size(asns) - 2) AS i\nUNWIND range(i + 1, size(asns) - 1) AS j\nWITH asns[i] AS asn1, asns[j] AS asn2\nWITH asn1, asn2, count(*) AS shared_groupings\nORDER BY shared_groupings DESC, asn1 ASC, asn2 ASC\nLIMIT 10\nRETURN asn1, asn2, shared_groupings",
+              "matched_pairs": [],
+              "ok": false,
+              "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+              "rows_preview": null
+            },
+            {
+              "fragment": "MATCH (ip:IP)-[:BELONGS_TO]->(asn:ASN)\nMATCH (ip)-[r:ATTACKS]->(c:Country)\nWITH\n  c.name AS target_country,\n  r.technique AS technique,\n  date.truncate('month', r.documented_create_date) AS year_month,\n  collect(DISTINCT asn.number) AS asns\nWITH target_country, technique, year_month, asns, size(asns) AS n\nWHERE n > 1\nUNWIND range(0, n - 2) AS i\nUNWIND range(i + 1, n - 1) AS j\nWITH asns[i] AS asn1, asns[j] AS asn2\nWITH CASE WHEN asn1 < asn2 THEN [asn1, asn2] ELSE [asn2, asn1] END AS pair\nWITH pair[0] AS asn_a, pair[1] AS asn_b, count(*) AS shared_grouping_count\nRETURN asn_a, asn_b, shared_grouping_count\nORDER BY shared_grouping_count DESC, asn_a ASC, asn_b ASC\nLIMIT 10",
+              "matched_pairs": [],
+              "ok": false,
+              "error": "Couldn't connect to localhost:7688 (resolved to ('127.0.0.1:7688',)):\nFailed to read four byte Bolt handshake response from server ResolvedIPv4Address(('127.0.0.1', 7688)) (deadline Deadline(timeout=60.0))",
+              "rows_preview": null
+            }
+          ]
+        }
+      ]
+    },
+    "final_validation": {
+      "trace": [
+        {
+          "query": "",
+          "ok": false,
+          "error": "Empty query",
+          "rows_preview": null
+        },
+        {
+          "query": "",
+          "ok": false,
+          "error": "Empty query",
+          "rows_preview": null
+        },
+        {
+          "query": "",
+          "ok": false,
+          "error": "Empty query",
+          "rows_preview": null
+        }
+      ],
+      "error": "Empty query",
+      "results_preview": null
+    },
+    "explanation": {
+      "text": null
+    }
+  },
+  "token_usage": {
+    "input": 3679,
+    "output": 3578,
+    "total": 7257
+  },
+  "metadata": {
+    "time": "2026-02-20T14:09:46.663669+00:00",
+    "model": "gpt-5.2",
+    "provider": "openai",
+    "commit": "fe230c779a507b7632ca5ff91ff4f38503fe6b67"
+  },
+  "clarification_needed": false,
+  "clarification_question": ""
+}

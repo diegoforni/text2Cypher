@@ -1,0 +1,8 @@
+[
+  {
+    "index": 1,
+    "category": "matcher-needed",
+    "prompt": "How many attacks used technique ' Phishing' against Australia?",
+    "expected_cypher": "MATCH (:IP)-[a:ATTACKS {technique:'T1566 Phishing'}]->(:Country {name:'Australia'})\nRETURN count(a) AS attacks"
+  }
+]
